@@ -12,12 +12,22 @@
 
 #include "examples_common.h"
 
+Eigen::Matrix3d skew(Eigen::Vector3d vec) {
+  Eigen::Matrix3d ret; ret << 0,     -vec[2], vec(1),
+                              vec[2], 0,     -vec(0),
+                             -vec(1), vec(0), 0;
+  return ret;
+}
+
 int main(int argc, char** argv) {
   // Check whether the required arguments were passed
   if (argc != 2) {
     std::cerr << "Usage: " << argv[0] << " <robot-hostname>" << std::endl;
     return -1;
   }
+
+  // Geometric parameters
+  const Eigen::Vector3d ee_offset{0.0, 0.0, 0.2};
 
   // Compliance parameters
   const double translational_stiffness{150.0};
@@ -56,10 +66,16 @@ int main(int argc, char** argv) {
       std::array<double, 42> jacobian_array =
           model.zeroJacobian(franka::Frame::kEndEffector, robot_state);
 
+      // get rotation transform
+      Eigen::Affine3d current_transform(Eigen::Matrix4d::Map(initial_state.O_T_EE.data()));
+      Eigen::Matrix3d rotation_transform(initial_transform.rotation());
+
       // convert to Eigen
       Eigen::Map<const Eigen::Matrix<double, 7, 1>> coriolis(coriolis_array.data());
       Eigen::Map<const Eigen::Matrix<double, 6, 7>> geometricJacobian(jacobian_array.data());
-      auto jacobian = geometricJacobian.topRows<3>();
+      auto translationalJacobian = geometricJacobian.topRows<3>();
+      auto rotationalJacobian = geometricJacobian.bottomRows<3>();
+      auto jacobian = translationalJacobian - skew(rotation_transform * ee_offset) * rotationalJacobian;
       Eigen::Map<const Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
       Eigen::Map<const Eigen::Matrix<double, 7, 1>> dq(robot_state.dq.data());
       Eigen::Affine3d transform(Eigen::Matrix4d::Map(robot_state.O_T_EE.data()));
