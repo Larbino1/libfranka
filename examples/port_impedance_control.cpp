@@ -13,8 +13,8 @@
 #include "examples_common.h"
 
 Eigen::Matrix3d skew(Eigen::Vector3d vec) {
-  Eigen::Matrix3d ret; ret << 0,     -vec[2], vec(1),
-                              vec[2], 0,     -vec(0),
+  Eigen::Matrix3d ret; ret << 0,     -vec(2), vec(1),
+                              vec(2), 0,     -vec(0),
                              -vec(1), vec(0), 0;
   return ret;
 }
@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
   }
 
   // Geometric parameters
-  const Eigen::Vector3d ee_offset{0.0, 0.0, 0.2};
+  const Eigen::Vector3d ee_offset({0.0, 0.0, 0.0});
 
   // Compliance parameters
   const double translational_stiffness{150.0};
@@ -83,8 +83,7 @@ int main(int argc, char** argv) {
 
       // compute error to desired equilibrium pose
       // position error
-      Eigen::Matrix<double, 3, 1> error;
-      error.head(3) << position - position_d;
+      Eigen::Matrix<double, 3, 1> error(position - position_d);
 
       // compute control
       Eigen::VectorXd tau_task(7), tau_d(7);
