@@ -78,8 +78,7 @@ int main(int argc, char** argv) {
       auto jacobian = translationalJacobian - skew(rotation_transform * ee_offset) * rotationalJacobian;
       Eigen::Map<const Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
       Eigen::Map<const Eigen::Matrix<double, 7, 1>> dq(robot_state.dq.data());
-      Eigen::Affine3d transform(Eigen::Matrix4d::Map(robot_state.O_T_EE.data()));
-      Eigen::Vector3d position(transform.translation() + transform * ee_offset);
+      Eigen::Vector3d position(current_transform.translation() + current_transform * ee_offset);
 
       // compute error to desired equilibrium pose
       // position error
