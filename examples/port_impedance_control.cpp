@@ -21,16 +21,12 @@ int main(int argc, char** argv) {
 
   // Compliance parameters
   const double translational_stiffness{150.0};
-  const double rotational_stiffness{10.0};
-  Eigen::MatrixXd stiffness(6, 6), damping(6, 6);
+  Eigen::MatrixXd stiffness(3, 3), damping(3, 3);
   stiffness.setZero();
   stiffness.topLeftCorner(3, 3) << translational_stiffness * Eigen::MatrixXd::Identity(3, 3);
-  stiffness.bottomRightCorner(3, 3) << rotational_stiffness * Eigen::MatrixXd::Identity(3, 3);
   damping.setZero();
   damping.topLeftCorner(3, 3) << 2.0 * sqrt(translational_stiffness) *
                                      Eigen::MatrixXd::Identity(3, 3);
-  damping.bottomRightCorner(3, 3) << 2.0 * sqrt(rotational_stiffness) *
-                                         Eigen::MatrixXd::Identity(3, 3);
 
   try {
     // connect to robot
@@ -44,7 +40,6 @@ int main(int argc, char** argv) {
     // equilibrium point is the initial position
     Eigen::Affine3d initial_transform(Eigen::Matrix4d::Map(initial_state.O_T_EE.data()));
     Eigen::Vector3d position_d(initial_transform.translation());
-    // Eigen::Quaterniond orientation_d(initial_transform.linear());
 
     // set collision behavior
     robot.setCollisionBehavior({{10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0}},
@@ -63,7 +58,8 @@ int main(int argc, char** argv) {
 
       // convert to Eigen
       Eigen::Map<const Eigen::Matrix<double, 7, 1>> coriolis(coriolis_array.data());
-      Eigen::Map<const Eigen::Matrix<double, 6, 7>> jacobian(jacobian_array.data());
+      Eigen::Map<const Eigen::Matrix<double, 6, 7>> geometricJacobian(jacobian_array.data());
+      auto jacobian = geometricJacobian.topRows<3>();
       Eigen::Map<const Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
       Eigen::Map<const Eigen::Matrix<double, 7, 1>> dq(robot_state.dq.data());
       Eigen::Affine3d transform(Eigen::Matrix4d::Map(robot_state.O_T_EE.data()));
@@ -72,9 +68,8 @@ int main(int argc, char** argv) {
 
       // compute error to desired equilibrium pose
       // position error
-      Eigen::Matrix<double, 6, 1> error;
+      Eigen::Matrix<double, 3, 1> error;
       error.head(3) << position - position_d;
-      error.tail(3) << Eigen::Vector3d(0., 0., 0.);
 
       // compute control
       Eigen::VectorXd tau_task(7), tau_d(7);
