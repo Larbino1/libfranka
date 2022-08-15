@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
   }
 
   // Geometric parameters
-  const Eigen::Vector3d ee_offset({0.0, 0.0, 0.0});
+  const Eigen::Vector3d ee_offset({0.0, 0.0, 0.36});
 
   // Compliance parameters
   const double translational_stiffness{150.0};
@@ -73,9 +73,12 @@ int main(int argc, char** argv) {
       // convert to Eigen
       Eigen::Map<const Eigen::Matrix<double, 7, 1>> coriolis(coriolis_array.data());
       Eigen::Map<const Eigen::Matrix<double, 6, 7>> geometricJacobian(jacobian_array.data());
-      auto translationalJacobian = geometricJacobian.topRows<3>();
-      auto rotationalJacobian = geometricJacobian.bottomRows<3>();
-      auto jacobian = translationalJacobian - skew(rotation_transform * ee_offset) * rotationalJacobian;
+      Eigen::Matrix<double, 3, 7> translationalJacobian;
+      Eigen::Matrix<double, 3, 7> rotationalJacobian;
+      Eigen::Matrix<double, 3, 7> jacobian;
+      translationalJacobian << geometricJacobian.topRows(3);
+      rotationalJacobian << geometricJacobian.bottomRows(3);
+      jacobian << translationalJacobian - skew(rotation_transform * ee_offset) * rotationalJacobian;
       Eigen::Map<const Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
       Eigen::Map<const Eigen::Matrix<double, 7, 1>> dq(robot_state.dq.data());
       Eigen::Vector3d position(current_transform * ee_offset);
