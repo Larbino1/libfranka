@@ -67,8 +67,8 @@ int main(int argc, char** argv) {
           model.zeroJacobian(franka::Frame::kEndEffector, robot_state);
 
       // get rotation transform
-      Eigen::Affine3d current_transform(Eigen::Matrix4d::Map(initial_state.O_T_EE.data()));
-      Eigen::Matrix3d rotation_transform(initial_transform.rotation());
+      Eigen::Affine3d current_transform(Eigen::Matrix4d::Map(robot_state.O_T_EE.data()));
+      Eigen::Matrix3d rotation_transform(current_transform.rotation());
 
       // convert to Eigen
       Eigen::Map<const Eigen::Matrix<double, 7, 1>> coriolis(coriolis_array.data());
