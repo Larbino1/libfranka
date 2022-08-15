@@ -12,11 +12,20 @@
 
 #include "examples_common.h"
 
+auto& all = Eigen::all;
+
 Eigen::Matrix3d skew(Eigen::Vector3d vec) {
   Eigen::Matrix3d ret; ret << 0,     -vec[2], vec(1),
                               vec[2], 0,     -vec(0),
                              -vec(1), vec(0), 0;
   return ret;
+}
+
+Eigen::Matrix<double, 3, 7> unit_vec_jacobian(Eigen::Matrix3d R, Eigen::Matrix<double, 3, 7> Jw, Eigen::Vector3d u) {
+  auto J_R1 = - skew(R(all, 0)) * Jw;
+  auto J_R2 = - skew(R(all, 1)) * Jw;
+  auto J_R3 = - skew(R(all, 2)) * Jw;
+  return J_R1*u + J_R2*u + J_R3*u;
 }
 
 int main(int argc, char** argv) {
@@ -27,7 +36,9 @@ int main(int argc, char** argv) {
   }
 
   // Geometric parameters
-  const Eigen::Vector3d ee_offset{0.0, 0.0, 0.2};
+  const Eigen::Vector3d rcm_offset{0.0, 0.0, 0.2};
+  const Eigen::Vector3d u1{1.0, 0.0, 0.0};
+  const Eigen::Vector3d u2{0.0, 1.0, 0.0};
 
   // Compliance parameters
   const double translational_stiffness{150.0};
@@ -49,7 +60,7 @@ int main(int argc, char** argv) {
 
     // equilibrium point is the initial position
     Eigen::Affine3d initial_transform(Eigen::Matrix4d::Map(initial_state.O_T_EE.data()));
-    Eigen::Vector3d position_d(initial_transform.translation());
+    Eigen::Vector3d position_d(initial_transform.translation() + initial_transform * rcm_offset);
 
     // set collision behavior
     robot.setCollisionBehavior({{10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0}},
@@ -73,9 +84,8 @@ int main(int argc, char** argv) {
       // convert to Eigen
       Eigen::Map<const Eigen::Matrix<double, 7, 1>> coriolis(coriolis_array.data());
       Eigen::Map<const Eigen::Matrix<double, 6, 7>> geometricJacobian(jacobian_array.data());
-      auto translationalJacobian = geometricJacobian.topRows<3>();
-      auto rotationalJacobian = geometricJacobian.bottomRows<3>();
-      auto jacobian = translationalJacobian - skew(rotation_transform * ee_offset) * rotationalJacobian;
+      auto translational_jacobian = geometricJacobian.topRows<3>();
+      auto rotational_jacobian = geometricJacobian.bottomRows<3>();
       Eigen::Map<const Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
       Eigen::Map<const Eigen::Matrix<double, 7, 1>> dq(robot_state.dq.data());
       Eigen::Affine3d transform(Eigen::Matrix4d::Map(robot_state.O_T_EE.data()));
@@ -84,8 +94,22 @@ int main(int argc, char** argv) {
 
       // compute error to desired equilibrium pose
       // position error
-      Eigen::Matrix<double, 3, 1> error;
-      error.head(3) << position - position_d;
+      Eigen::Vector3d r; r << position - position_d;
+      Eigen::Vector3d v1; v1 << rotation_transform * u1;
+      Eigen::Vector3d v2; v2 << rotation_transform * u2;
+      Eigen::Vector2d error; error << v1.transpose() * r,
+                                      v2.transpose() * r;
+      auto J_u1 = unit_vec_jacobian(rotation_transform, rotational_jacobian, u1);
+      auto J_u2 = unit_vec_jacobian(rotation_transform, rotational_jacobian, u2);
+      
+      Eigen::Matrix<double, 2, 7> jacobian; 
+      jacobian << (v1.transpose() * translational_jacobian) + (r.transpose() * J_u1),
+                  (v2.transpose() * translational_jacobian) + (r.transpose() * J_u2);
+
+      // Check error not too large
+      if (r.norm() > 0.01) {
+        throw std::runtime_error("Aborting; too far away from starting pose!");
+      }
 
       // compute control
       Eigen::VectorXd tau_task(7), tau_d(7);
