@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <iostream>
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -150,9 +151,9 @@ Eigen::Matrix<double, 3, 7> offset_jacobian(Eigen::Affine3d transform, Eigen::Ma
 }
 
 Eigen::Matrix<double, 3, 7> unit_vec_jacobian(Eigen::Matrix3d R, Eigen::Matrix<double, 3, 7> Jw, Eigen::Vector3d u) {
-  auto J_R1 = - skew(R.col(0)) * Jw;
-  auto J_R2 = - skew(R.col(1)) * Jw;
-  auto J_R3 = - skew(R.col(2)) * Jw;
+  Eigen::Matrix<double, 3, 7> J_R1 = - skew(R.col(0)) * Jw;
+  Eigen::Matrix<double, 3, 7> J_R2 = - skew(R.col(1)) * Jw;
+  Eigen::Matrix<double, 3, 7> J_R3 = - skew(R.col(2)) * Jw;
   return J_R1*u(1) + J_R2*u(2) + J_R3*u(3);
 }
 

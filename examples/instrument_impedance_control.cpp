@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
   const auto frame = franka::Frame::kEndEffector;
 
   // Compliance parameters
-  const double translational_stiffness{300.0};
+  const double translational_stiffness{1000.0};
   Eigen::MatrixXd stiffness(3, 3), damping(3, 3);
   stiffness.setZero();
   stiffness.topLeftCorner(3, 3) << translational_stiffness * Eigen::MatrixXd::Identity(3, 3);
@@ -46,10 +46,10 @@ int main(int argc, char** argv) {
     Eigen::Vector3d position_d(initial_transform * ee_offset);
 
     // set collision behavior
-    robot.setCollisionBehavior({{10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0}},
-                               {{10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0}},
-                               {{10.0, 10.0, 10.0, 10.0, 10.0, 10.0}},
-                               {{10.0, 10.0, 10.0, 10.0, 10.0, 10.0}});
+    robot.setCollisionBehavior({{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
+                               {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
+                               {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
+                               {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0}});
 
     // define callback for the torque control loop
     std::function<franka::Torques(const franka::RobotState&, franka::Duration)>
@@ -57,7 +57,6 @@ int main(int argc, char** argv) {
                                          franka::Duration /*duration*/) -> franka::Torques {
       Eigen::Affine3d current_transform(Eigen::Matrix4d::Map(robot_state.O_T_EE.data()));
       Eigen::Map<const Eigen::Matrix<double, 6, 7>> geometric_jacobian(model.zeroJacobian(frame, robot_state).data());
-      Eigen::Map<const Eigen::Matrix<double, 7, 1>> coriolis(model.coriolis(robot_state).data());
       Eigen::Map<const Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
       Eigen::Map<const Eigen::Matrix<double, 7, 1>> dq(robot_state.dq.data());
 
@@ -73,7 +72,7 @@ int main(int argc, char** argv) {
 
       // compute control
       Eigen::VectorXd tau_d(7);
-      tau_d << jacobian.transpose() * (-stiffness * error - damping * (jacobian * dq)) + coriolis;
+      tau_d << jacobian.transpose() * (-stiffness * error - damping * (jacobian * dq));
 
       // convert to double array
       std::array<double, 7> tau_d_array{};

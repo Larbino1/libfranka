@@ -21,12 +21,12 @@ int main(int argc, char** argv) {
 
   // Geometric parameters
   const auto frame = franka::Frame::kEndEffector;
-  const Eigen::Vector3d rcm_offset{0.0, 0.0, 0.2};
+  const Eigen::Vector3d rcm_offset{0.0, 0.0, 0.38};
   const Eigen::Vector3d u1{1.0, 0.0, 0.0};
   const Eigen::Vector3d u2{0.0, 1.0, 0.0};
 
   // Compliance parameters
-  const double translational_stiffness{150.0};
+  const double translational_stiffness{300.0};
   Eigen::MatrixXd stiffness(2, 2), damping(2, 2);
   stiffness.setZero();
   stiffness.topLeftCorner(2, 2) << translational_stiffness * Eigen::MatrixXd::Identity(2, 2);
@@ -52,10 +52,10 @@ int main(int argc, char** argv) {
     port.u2 = u2;
 
     // set collision behavior
-    robot.setCollisionBehavior({{10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0}},
-                               {{10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0}},
-                               {{10.0, 10.0, 10.0, 10.0, 10.0, 10.0}},
-                               {{10.0, 10.0, 10.0, 10.0, 10.0, 10.0}});
+    robot.setCollisionBehavior({{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
+                               {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
+                               {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
+                               {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0}});
 
     // define callback for the torque control loop
     std::function<franka::Torques(const franka::RobotState&, franka::Duration)>
@@ -74,7 +74,7 @@ int main(int argc, char** argv) {
 
       // convert to Eigen
       // Check error not too large
-      if (error.norm() > 0.05) {
+      if (error.norm() > 0.15) {
         throw std::runtime_error("Aborting; too far away from starting pose!");
       }
 
