@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
   const auto frame = franka::Frame::kEndEffector;
 
   // Compliance parameters
-  const double translational_stiffness{150.0};
+  const double translational_stiffness{300.0};
   Eigen::MatrixXd stiffness(3, 3), damping(3, 3);
   stiffness.setZero();
   stiffness.topLeftCorner(3, 3) << translational_stiffness * Eigen::MatrixXd::Identity(3, 3);

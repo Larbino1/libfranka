@@ -5,6 +5,7 @@
 #include <array>
 
 #include <Eigen/Core>
+#include <Eigen/Dense>
 
 #include <franka/control_types.h>
 #include <franka/duration.h>
@@ -91,7 +92,7 @@ struct PortCoord{
 
 template <int Dim>
 struct CoordResult {
-    Eigen::Vector<double, Dim> error;
+    Eigen::Matrix<double, Dim, 1> error;
     Eigen::Matrix<double, Dim, 7> jacobian;
 };
 

@@ -6,6 +6,7 @@
 #include <array>
 #include <cmath>
 
+#include <Eigen/Core>
 #include <Eigen/Dense>
 
 #include <franka/exception.h>
@@ -149,11 +150,10 @@ Eigen::Matrix<double, 3, 7> offset_jacobian(Eigen::Affine3d transform, Eigen::Ma
 }
 
 Eigen::Matrix<double, 3, 7> unit_vec_jacobian(Eigen::Matrix3d R, Eigen::Matrix<double, 3, 7> Jw, Eigen::Vector3d u) {
-  const auto& all = Eigen::all;
-  auto J_R1 = - skew(R(all, 0)) * Jw;
-  auto J_R2 = - skew(R(all, 1)) * Jw;
-  auto J_R3 = - skew(R(all, 2)) * Jw;
-  return J_R1*u + J_R2*u + J_R3*u;
+  auto J_R1 = - skew(R.col(0)) * Jw;
+  auto J_R2 = - skew(R.col(1)) * Jw;
+  auto J_R3 = - skew(R.col(2)) * Jw;
+  return J_R1*u(1) + J_R2*u(2) + J_R3*u(3);
 }
 
 CoordResult<2> computePortCoord(Eigen::Affine3d transform, Eigen::Matrix<double, 6, 7> geometric_jacobian, PortCoord port) {
