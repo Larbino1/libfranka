@@ -73,3 +73,26 @@ class MotionGenerator {
   Vector7d ddq_max_start_ = (Vector7d() << 5, 5, 5, 5, 5, 5, 5).finished();
   Vector7d ddq_max_goal_ = (Vector7d() << 5, 5, 5, 5, 5, 5, 5).finished();
 };
+
+Eigen::Matrix3d skew(const Eigen::Vector3d& vec);
+
+Eigen::Matrix<double, 3, 7> offset_jacobian(Eigen::Affine3d transform, 
+                                        Eigen::Matrix<double, 6, 7> geometric_jacobian,
+                                        Eigen::Vector3d offset);
+
+Eigen::Matrix<double, 3, 7> unit_vec_jacobian(Eigen::Matrix3d R, Eigen::Matrix<double, 3, 7> Jw, Eigen::Vector3d u);
+
+struct PortCoord{
+  Eigen::Vector3d u1;
+  Eigen::Vector3d u2;
+  Eigen::Vector3d rcm; 
+};
+
+
+template <int Dim>
+struct CoordResult {
+    Eigen::Vector<double, Dim> error;
+    Eigen::Matrix<double, Dim, 7> jacobian;
+};
+
+CoordResult<2> computePortCoord(Eigen::Affine3d transform, Eigen::Matrix<double, 6, 7> geometric_jacobian, PortCoord port);

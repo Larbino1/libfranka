@@ -20,19 +20,17 @@ int main(int argc, char** argv) {
   }
 
   // Geometric parameters
+  const Eigen::Vector3d ee_offset({0.0, 0.0, 0.36});
   const auto frame = franka::Frame::kEndEffector;
-  const Eigen::Vector3d rcm_offset{0.0, 0.0, 0.2};
-  const Eigen::Vector3d u1{1.0, 0.0, 0.0};
-  const Eigen::Vector3d u2{0.0, 1.0, 0.0};
 
   // Compliance parameters
   const double translational_stiffness{150.0};
-  Eigen::MatrixXd stiffness(2, 2), damping(2, 2);
+  Eigen::MatrixXd stiffness(3, 3), damping(3, 3);
   stiffness.setZero();
-  stiffness.topLeftCorner(2, 2) << translational_stiffness * Eigen::MatrixXd::Identity(2, 2);
+  stiffness.topLeftCorner(3, 3) << translational_stiffness * Eigen::MatrixXd::Identity(3, 3);
   damping.setZero();
-  damping.topLeftCorner(2, 2) << 2.0 * sqrt(translational_stiffness) *
-                                     Eigen::MatrixXd::Identity(2, 2);
+  damping.topLeftCorner(3, 3) << 2.0 * sqrt(translational_stiffness) *
+                                     Eigen::MatrixXd::Identity(3, 3);
 
   try {
     // connect to robot
@@ -45,11 +43,7 @@ int main(int argc, char** argv) {
 
     // equilibrium point is the initial position
     Eigen::Affine3d initial_transform(Eigen::Matrix4d::Map(initial_state.O_T_EE.data()));
-    Eigen::Vector3d rcm(initial_transform * rcm_offset);
-    PortCoord port;
-    port.rcm = rcm;
-    port.u1 = u1;
-    port.u2 = u2;
+    Eigen::Vector3d position_d(initial_transform * ee_offset);
 
     // set collision behavior
     robot.setCollisionBehavior({{10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0}},
@@ -61,18 +55,17 @@ int main(int argc, char** argv) {
     std::function<franka::Torques(const franka::RobotState&, franka::Duration)>
         impedance_control_callback = [&](const franka::RobotState& robot_state,
                                          franka::Duration /*duration*/) -> franka::Torques {
-      // get state variables
       Eigen::Affine3d current_transform(Eigen::Matrix4d::Map(robot_state.O_T_EE.data()));
       Eigen::Map<const Eigen::Matrix<double, 6, 7>> geometric_jacobian(model.zeroJacobian(frame, robot_state).data());
       Eigen::Map<const Eigen::Matrix<double, 7, 1>> coriolis(model.coriolis(robot_state).data());
       Eigen::Map<const Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
       Eigen::Map<const Eigen::Matrix<double, 7, 1>> dq(robot_state.dq.data());
 
-      auto coord_result = computePortCoord(current_transform, geometric_jacobian, port);
-      auto error = coord_result.error;
-      auto jacobian = coord_result.jacobian;
+      // compute control coordinate error and jacobian
+      Eigen::Vector3d position(current_transform * ee_offset);
+      Eigen::Matrix<double, 3, 1> error(position - position_d);
+      auto jacobian = offset_jacobian(current_transform, geometric_jacobian, ee_offset);
 
-      // convert to Eigen
       // Check error not too large
       if (error.norm() > 0.05) {
         throw std::runtime_error("Aborting; too far away from starting pose!");
