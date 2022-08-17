@@ -168,8 +168,8 @@ CoordResult<2> computePortCoord(Eigen::Affine3d transform, Eigen::Matrix<double,
       Eigen::Matrix<double, 3, 7> translational_jacobian, rotational_jacobian;
       translational_jacobian << geometric_jacobian.topRows(3);
       rotational_jacobian << geometric_jacobian.bottomRows(3);
-      auto J_u1 = unit_vec_jacobian(rotation, rotational_jacobian, port.u1);
-      auto J_u2 = unit_vec_jacobian(rotation, rotational_jacobian, port.u2);
+      Eigen::Matrix<double, 3, 7> J_u1 = unit_vec_jacobian(rotation, rotational_jacobian, port.u1);
+      Eigen::Matrix<double, 3, 7> J_u2 = unit_vec_jacobian(rotation, rotational_jacobian, port.u2);
       Eigen::Matrix<double, 2, 7> jacobian; 
       jacobian << (v1.transpose() * translational_jacobian) + (r.transpose() * J_u1),
                   (v2.transpose() * translational_jacobian) + (r.transpose() * J_u2);

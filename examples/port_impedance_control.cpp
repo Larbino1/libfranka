@@ -72,6 +72,16 @@ int main(int argc, char** argv) {
       auto error = coord_result.error;
       auto jacobian = coord_result.jacobian;
 
+
+      std::cout << current_transform.affine() << std::endl << std::endl;
+      std::cout << geometric_jacobian << std::endl << std::endl;
+      std::cout << port.rcm << std::endl << std::endl;
+      std::cout << port.u1 << std::endl << std::endl;
+      std::cout << port.u2 << std::endl << std::endl;
+      std::cout << "result" <<std::endl;
+      std::cout << error << std::endl << std::endl;
+      std::cout << jacobian << std::endl << std::endl;
+
       // convert to Eigen
       // Check error not too large
       if (error.norm() > 0.15) {
