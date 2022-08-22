@@ -20,11 +20,11 @@ int main(int argc, char** argv) {
   }
 
   // Geometric parameters
-  const Eigen::Vector3d ee_offset({0.0, 0.0, 0.36});
+  const Eigen::Vector3d ee_offset({0.422, 0.0, 0.042});
   const auto frame = franka::Frame::kEndEffector;
 
   // Compliance parameters
-  const double translational_stiffness{1000.0};
+  const double translational_stiffness{500.0};
   Eigen::MatrixXd stiffness(3, 3), damping(3, 3);
   stiffness.setZero();
   stiffness.topLeftCorner(3, 3) << translational_stiffness * Eigen::MatrixXd::Identity(3, 3);

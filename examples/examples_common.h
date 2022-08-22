@@ -87,6 +87,7 @@ struct PortCoord{
   Eigen::Vector3d u1;
   Eigen::Vector3d u2;
   Eigen::Vector3d rcm; 
+  Eigen::Vector3d offset;
 };
 
 

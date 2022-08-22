@@ -154,11 +154,11 @@ Eigen::Matrix<double, 3, 7> unit_vec_jacobian(Eigen::Matrix3d R, Eigen::Matrix<d
   Eigen::Matrix<double, 3, 7> J_R1 = - skew(R.col(0)) * Jw;
   Eigen::Matrix<double, 3, 7> J_R2 = - skew(R.col(1)) * Jw;
   Eigen::Matrix<double, 3, 7> J_R3 = - skew(R.col(2)) * Jw;
-  return J_R1*u(1) + J_R2*u(2) + J_R3*u(3);
+  return J_R1*u(0) + J_R2*u(1) + J_R3*u(2);
 }
 
 CoordResult<2> computePortCoord(Eigen::Affine3d transform, Eigen::Matrix<double, 6, 7> geometric_jacobian, PortCoord port) {
-      Eigen::Vector3d position(transform.translation());
+      Eigen::Vector3d position(transform * port.offset);
       Eigen::Matrix3d rotation(transform.rotation());
       Eigen::Vector3d r(position - port.rcm);
       Eigen::Vector3d v1(rotation * port.u1);
@@ -166,7 +166,7 @@ CoordResult<2> computePortCoord(Eigen::Affine3d transform, Eigen::Matrix<double,
       Eigen::Vector2d error; error << v1.transpose() * r,
                                       v2.transpose() * r;
       Eigen::Matrix<double, 3, 7> translational_jacobian, rotational_jacobian;
-      translational_jacobian << geometric_jacobian.topRows(3);
+      translational_jacobian << offset_jacobian(transform, geometric_jacobian, port.offset);
       rotational_jacobian << geometric_jacobian.bottomRows(3);
       Eigen::Matrix<double, 3, 7> J_u1 = unit_vec_jacobian(rotation, rotational_jacobian, port.u1);
       Eigen::Matrix<double, 3, 7> J_u2 = unit_vec_jacobian(rotation, rotational_jacobian, port.u2);
@@ -176,5 +176,14 @@ CoordResult<2> computePortCoord(Eigen::Affine3d transform, Eigen::Matrix<double,
       CoordResult<2> ret;
       ret.error = error;
       ret.jacobian = jacobian;
+/*
+      std::cout << "\nR\n" << rotation; 
+      std::cout << "\nr\n" << r; 
+      std::cout << "\nv1\n" << v1; 
+      std::cout << "\nv2\n" << v2; 
+      std::cout << "\nJ_u1\n" << J_u1; 
+      std::cout << "\nJ_u2\n" << J_u2; 
+*/
+
       return ret;
 }
