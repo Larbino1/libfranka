@@ -53,10 +53,6 @@ int main(int argc, char** argv) {
     port.offset = rcm_offset;
 
     // set collision behavior
-/*    robot.setCollisionBehavior({{10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0}},
-                               {{10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0}},
-                               {{10.0, 10.0, 10.0, 10.0, 10.0, 10.0}},
-                               {{10.0, 10.0, 10.0, 10.0, 10.0, 10.0}});*/
     robot.setCollisionBehavior({{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
                                {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
                                {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
@@ -76,19 +72,6 @@ int main(int argc, char** argv) {
       auto error = coord_result.error;
       auto jacobian = coord_result.jacobian;
 
-/*
-      std::cout << current_transform.affine() << std::endl << std::endl;
-      std::cout << geometric_jacobian << std::endl << std::endl;
-      std::cout << port.rcm << std::endl << std::endl;
-      std::cout << port.u1 << std::endl << std::endl;
-      std::cout << port.u2 << std::endl << std::endl;
-      std::cout << port.offset << std::endl << std::endl;
-      std::cout << "result" <<std::endl;
-     */ 
-     // std::cout << error << std::endl << std::endl;
-      std::cout << 1000*jacobian * dq << std::endl << std::endl;
-/*      std::cout << jacobian << std::endl << std::endl;
-*/
       // convert to Eigen
       // Check error not too large
       if (error.norm() > 0.05) {
@@ -105,28 +88,6 @@ int main(int argc, char** argv) {
       Eigen::VectorXd::Map(&tau_d_array[0], 7) = tau_d; 
       return tau_d_array;
     };
-
-    /* TESTING
-    port.rcm << 1, 2, 3;
-    port.offset = rcm_offset;
-    Eigen::Matrix4d T; T << 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1;
-    Eigen::Affine3d current_transform(T);
-    Eigen::Matrix<double, 6, 7> geometric_jacobian;
-    geometric_jacobian.setOnes();
-    auto coord_result = computePortCoord(current_transform, geometric_jacobian, port);
-    auto error = coord_result.error;
-    auto jacobian = coord_result.jacobian;
-
-
-    std::cout << current_transform.affine() << std::endl << std::endl;
-    std::cout << geometric_jacobian << std::endl << std::endl;
-    std::cout << port.rcm << std::endl << std::endl;
-    std::cout << port.u1 << std::endl << std::endl;
-    std::cout << port.u2 << std::endl << std::endl;
-    std::cout << "result" <<std::endl;
-    std::cout << error << std::endl << std::endl;
-    std::cout << jacobian << std::endl << std::endl;
-    */
 
     // start real-time control loop
     std::cout << "WARNING: Collision thresholds are set to high values. "
