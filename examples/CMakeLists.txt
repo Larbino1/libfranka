@@ -19,6 +19,7 @@ add_library(examples_common STATIC
 )
 
 target_link_libraries(examples_common PUBLIC Franka::Franka Eigen3::Eigen3)
+target_link_libraries(examples_common PUBLIC MyLib)
 
 set(EXAMPLES
   cartesian_impedance_control
@@ -48,6 +49,8 @@ foreach(example ${EXAMPLES})
 endforeach()
 
 target_link_libraries(joint_impedance_control Threads::Threads)
+target_link_libraries(sandbox Threads::Threads)
+target_link_libraries(instrument_impedance_control Threads::Threads)
 target_link_libraries(motion_with_control Poco::Foundation)
 
 include(GNUInstallDirs)

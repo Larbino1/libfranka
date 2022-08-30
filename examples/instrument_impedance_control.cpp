@@ -1,6 +1,9 @@
 #include <array>
 #include <cmath>
+#include <chrono>
 #include <functional>
+#include <future>
+#include <thread>
 #include <iostream>
 
 #include <Eigen/Dense>
@@ -10,9 +13,12 @@
 #include <franka/model.h>
 #include <franka/robot.h>
 
+#include "myLib.h"
+
 #include "examples_common.h"
 
 int main(int argc, char** argv) {
+  std::cout << "Instrument impedance control demo" << std::endl;
   // Check whether the required arguments were passed
   if (argc != 2) {
     std::cerr << "Usage: " << argv[0] << " <robot-hostname>" << std::endl;
@@ -44,6 +50,9 @@ int main(int argc, char** argv) {
     // equilibrium point is the initial position
     Eigen::Affine3d initial_transform(Eigen::Matrix4d::Map(initial_state.O_T_EE.data()));
     Eigen::Vector3d position_d(initial_transform * ee_offset);
+    DRef ref;
+    std::future<DRef> future = std::async(read_reference_input);
+    std::chrono::microseconds timeout(100);
 
     // set collision behavior
     robot.setCollisionBehavior({{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
@@ -60,6 +69,11 @@ int main(int argc, char** argv) {
       Eigen::Map<const Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
       Eigen::Map<const Eigen::Matrix<double, 7, 1>> dq(robot_state.dq.data());
 
+      if (future.wait_for(timeout) == std::future_status::ready) {
+        ref = future.get();
+	std::cout << ref.r << std::endl;
+        future = std::async(read_reference_input);
+      }
       // compute control coordinate error and jacobian
       Eigen::Vector3d position(current_transform * ee_offset);
       Eigen::Matrix<double, 3, 1> error(position - position_d);

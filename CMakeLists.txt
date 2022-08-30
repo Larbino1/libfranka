@@ -46,6 +46,8 @@ endif()
 
 ## Submodules
 add_subdirectory(common)
+add_subdirectory(myLib)
+add_subdirectory(joyInput)
 
 ## Library
 add_library(franka SHARED
@@ -65,8 +67,6 @@ add_library(franka SHARED
   src/lowpass_filter.cpp
   src/model.cpp
   src/model_library.cpp
-  src/myLib.cpp
-  src/myLog.cpp
   src/network.cpp
   src/rate_limiting.cpp
   src/robot.cpp

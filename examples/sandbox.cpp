@@ -1,7 +1,12 @@
 #include <array>
 #include <cmath>
 #include <functional>
+#include <future>
 #include <iostream>
+#include <string>
+#include <sstream>
+#include <thread>
+#include <regex>
 
 #include <Eigen/Dense>
 
@@ -11,9 +16,21 @@
 #include <franka/robot.h>
 
 #include "examples_common.h"
+#include "myLib.h"
+
+
 
 int main(int argc, char** argv) {
-  // Check whether the required arguments were passed
+  DRef ref;
+  while (true) { 
+    std::chrono::milliseconds timeout(1);
+    std::future<DRef> future = std::async(read_reference_input);
+    if (future.wait_for(timeout) == std::future_status::ready) {
+      ref = future.get();
+      std::cout << ref.r << std::endl << ref.dr << std::endl;
+    }
+  }
+  /*// Check whether the required arguments were passed
   if (argc != 2) {
     std::cerr << "Usage: " << argv[0] << " <robot-hostname>" << std::endl;
     return -1;
@@ -48,6 +65,6 @@ int main(int argc, char** argv) {
     // print exception
     std::cout << ex.what() << std::endl;
   }
-
+  */
   return 0;
 }

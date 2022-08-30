@@ -10,6 +10,8 @@
 #include <franka/model.h>
 #include <franka/robot.h>
 
+#include "myLib.h"
+
 #include "examples_common.h"
 
 int main(int argc, char** argv) {

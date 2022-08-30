@@ -43,3 +43,29 @@ CoordResult<2> computePortCoord(Eigen::Affine3d transform, Eigen::Matrix<double,
       ret.jacobian = jacobian;
       return ret;
 }
+
+std::string stringIn, line;
+
+DRef read_reference_input() { 
+  //std::cin >> stringIn;
+  //std::stringstream ss(stringIn); 
+  std::getline(std::cin, line);
+  
+  std::smatch m;
+  if (std::regex_search(line, m, REF)){
+    stringIn.clear(); 
+   /* std::cout << "\n" << m[0] << "\n";
+    std::cout << m[1] << "\n";
+    std::cout << m[2] << "\n";
+    std::cout << m[3] << "\n";
+    std::cout << m[4] << "\n";
+    std::cout << m[5] << "\n";
+    std::cout << m[6] << "\n";*/
+
+    // TODO check error not too large
+    DRef ref;
+    ref.r << std::stod(m[1]), std::stod(m[2]), std::stod(m[3]);
+    ref.dr << std::stod(m[4]), std::stod(m[5]), std::stod(m[6]); 
+    return ref;
+  }
+}

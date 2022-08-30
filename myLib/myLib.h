@@ -1,3 +1,6 @@
+#include <regex>
+#include <iostream>
+
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
@@ -27,3 +30,12 @@ struct CoordResult {
 };
 
 CoordResult<2> computePortCoord(Eigen::Affine3d transform, Eigen::Matrix<double, 6, 7> geometric_jacobian, PortCoord port);
+
+struct DRef{
+  Eigen::Vector3d r;
+  Eigen::Vector3d dr;
+};
+
+const std::string FLOAT = "([+-]?[0-9]*[.]?[0-9]+)";
+const std::regex REF("x" + FLOAT + " y" + FLOAT + " z" + FLOAT + " dx" + FLOAT + " dy" + FLOAT + " dz" + FLOAT);
+DRef read_reference_input();
