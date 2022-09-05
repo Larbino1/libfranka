@@ -9,8 +9,7 @@
 
 const double AX_MAX = pow(2, 15);
 const double VMAX = 0.01;  // In m/s
-const double AX_SCALE = VMAX / AX_MAX;
-const double DEADZONE = 0.02 * VMAX;
+const double DEADZONE = 0.02;
 
 double deadzone(double val) {
   if (abs(val) < DEADZONE) {
@@ -43,10 +42,9 @@ SDL_Joystick* controllerInit() {
           name, num_axes, num_buttons, num_hats);
       printf("Expected 6, 11 and 1.");
       exit(1);
-    } 
+    }
     return controller;
-  }
-  else {
+  } else {
     fprintf(stderr, "Couldn't open the joystick (SDL_Joystick*==NULL)\n");
     exit(1);
   }
@@ -65,6 +63,36 @@ class RefState {
   }
 };
 
+class StickReader {
+ private:
+  SDL_Joystick* joy;
+  int ax_x_ID;
+  int ax_y_ID;
+  double ax_max;
+  double out_max;
+
+ public:
+  StickReader(SDL_Joystick* joy_, int ax_x_ID_, int ax_y_ID_, double ax_max_, double out_max_) {
+    joy = joy_;
+    ax_x_ID = ax_x_ID_;
+    ax_y_ID = ax_y_ID_;
+    ax_max = ax_max_;
+    out_max = out_max_;
+  }
+  Eigen::Vector2d read() {
+    while (SDL_PollEvent(&event)) {
+      if (event.type == SDL_QUIT) {
+        std::cerr <<“Termination signal caught, exiting.”<< endl;
+        exit(1);
+      }
+    }
+    Eigen::Vector2d ret;
+    ret << deadzone(SDL_JoystickGetAxis(controller, ax_x_ID) / ax_max) * out_max,
+        -deadzone(SDL_JoystickGetAxis(controller, ax_y_ID) / ax_max) * out_max;
+    return ret;
+  }
+}
+
 template <class F>
 void with_controller(F&& f) {
   SDL_Joystick* controller = controllerInit();
@@ -77,6 +105,7 @@ int main() {
   RefState ref(Eigen::Vector3d::Zero());
 
   with_controller([&](SDL_Joystick* controller) {
+    StickReader right_stick(controller, 3, 4, AX_MAX, VMAX);
     // Keep reading the state of the joystick in a loop
     using namespace std::chrono;
     const auto dt = 10ms;
@@ -93,16 +122,12 @@ int main() {
       next += dt;
 
       // Read inputs
-      double dx = deadzone(SDL_JoystickGetAxis(controller, 3) * AX_SCALE);
-      double dy = -deadzone(SDL_JoystickGetAxis(controller, 4) * AX_SCALE);
-
-      ref.vel[0] = dx;
-      ref.vel[1] = dy; 
+      ref.vel.toprows(2) << right_stick.read();
       ref.update(dtd);
 
       std::cout << ref.pos << std::endl;
       std::cout << ref.vel << std::endl;
-      
+
       // delay until time to iterate again
       std::this_thread::sleep_until(next);
     }
