@@ -16,6 +16,8 @@
 
 #include "examples_common.h"
 
+const double MAX_ERR = 0.04; // in m
+const double MAX_DQ = 1.0; // in rad/s
 const double VMAX = 0.05;  // In m/s
 
 int main(int argc, char** argv) {
@@ -27,26 +29,25 @@ int main(int argc, char** argv) {
   }
 
   // Geometric parameters
-  const z_offset = 0.042;
+  const double z_offset = 0.042;
   const Eigen::Vector3d ee_offset({0.422, 0.0, z_offset});
   const auto frame = franka::Frame::kEndEffector;
-  const Eigen::Vector3d rcm_offset({0.422, 0.0, z_offset});
+  const Eigen::Vector3d rcm_offset({0.2, 0.0, z_offset});
   const Eigen::Vector3d u1{0.0, 1.0, 0.0};
   const Eigen::Vector3d u2{0.0, 0.0, 1.0};
 
   // Compliance parameters
-  const double translational_stiffness{500.0};
+  const double stiffness{2000.0};
+  const double damping{20.0};
   Eigen::MatrixXd ee_stiffness(3, 3), ee_damping(3, 3), port_stiffness(2, 2), port_damping(2, 2);
   ee_stiffness.setZero();
-  ee_stiffness.topLeftCorner(3, 3) << translational_stiffness * Eigen::MatrixXd::Identity(3, 3);
+  ee_stiffness.topLeftCorner(3, 3) << stiffness * Eigen::MatrixXd::Identity(3, 3);
   ee_damping.setZero();
-  ee_damping.topLeftCorner(3, 3) << 2.0 * sqrt(translational_stiffness) *
-                                        Eigen::MatrixXd::Identity(3, 3);
+  ee_damping.topLeftCorner(3, 3) << damping * Eigen::MatrixXd::Identity(3, 3);
   port_stiffness.setZero();
-  port_stiffness.topLeftCorner(2, 2) << translational_stiffness * Eigen::MatrixXd::Identity(2, 2);
+  port_stiffness.topLeftCorner(2, 2) << stiffness * Eigen::MatrixXd::Identity(2, 2);
   port_damping.setZero();
-  port_damping.topLeftCorner(2, 2)
-      << 2.0 * sqrt(translational_stiffness) * Eigen::MatrixXd::Identity(2, 2);
+  port_damping.topLeftCorner(2, 2) << damping * Eigen::MatrixXd::Identity(2, 2);
 
   try {
     // connect to robot
@@ -109,14 +110,17 @@ int main(int argc, char** argv) {
         auto port_jacobian = coord_result.jacobian;
 
         // Check error not too large
-        if (ee_error.norm() > 0.05 || port_error.norm() > 0.05) {
+        if (ee_error.norm() > MAX_ERR || port_error.norm() > MAX_ERR) {
           throw std::runtime_error("Aborting; too far away from starting pose!");
+        }
+        if (dq.cwiseAbs().maxCoeff() > MAX_DQ) {
+          throw std::runtime_error("Aborting; Joint velocity too high");
         }
 
         // compute control
         Eigen::VectorXd tau_d(7);
         tau_d << ee_jacobian.transpose() *
-                         (-ee_stiffness * ee_error - ee_damping * (ee__jacobian * dq)) +
+                         (-ee_stiffness * ee_error - ee_damping * (ee_jacobian * dq)) +
                      port_jacobian.transpose() *
                          (-port_stiffness * port_error - port_damping * (port_jacobian * dq));
 
