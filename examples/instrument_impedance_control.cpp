@@ -16,6 +16,8 @@
 
 #include "examples_common.h"
 
+const double VMAX = 0.01;  // In m/s
+
 int main(int argc, char** argv) {
   std::cout << "Instrument impedance control demo" << std::endl;
   // Check whether the required arguments were passed
@@ -48,16 +50,18 @@ int main(int argc, char** argv) {
 
     // equilibrium point is the initial position
     Eigen::Affine3d initial_transform(Eigen::Matrix4d::Map(initial_state.O_T_EE.data()));
-    Eigen::Vector3d position_d(initial_transform * ee_offset);
-    DRef ref;
+    RefState ref(initial_transform * ee_offset);
+    int loopCounter = 0;
 
     // set collision behavior
     robot.setCollisionBehavior(
         {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}}, {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
         {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0}}, {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0}});
 
-  with_controller([&] (SDL_Joystick* controller) {
-      
+    with_controller([&](SDL_Joystick* controller) {
+      // Define input functions
+      StickReader right_stick(controller, 3, 4, AX_MAX, VMAX);
+
       // define callback for the torque control loop
       std::function<franka::Torques(const franka::RobotState&, franka::Duration)>
           impedance_control_callback = [&](const franka::RobotState& robot_state,
@@ -68,9 +72,14 @@ int main(int argc, char** argv) {
         Eigen::Map<const Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
         Eigen::Map<const Eigen::Matrix<double, 7, 1>> dq(robot_state.dq.data());
 
+        loopCounter = (loopCounter + 1) % 20;
+        if loopCounter == 0 {
+          ref.toprows(2) << StickReader.read();
+        }
+
         // compute control coordinate error and jacobian
         Eigen::Vector3d position(current_transform * ee_offset);
-        Eigen::Matrix<double, 3, 1> error(position - position_d);
+        Eigen::Matrix<double, 3, 1> error(position - ref.pos);
         auto jacobian = offset_jacobian(current_transform, geometric_jacobian, ee_offset);
 
         // Check error not too large
@@ -95,7 +104,7 @@ int main(int argc, char** argv) {
                 << "Press Enter to continue..." << std::endl;
       std::cin.ignore();
       robot.control(impedance_control_callback);
-  });
+    });
   } catch (const franka::Exception& ex) {
     // print exception
     std::cout << ex.what() << std::endl;

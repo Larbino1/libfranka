@@ -9,7 +9,6 @@
 
 #include "joyInput.h"
 
-const double AX_MAX = pow(2, 15);
 const double VMAX = 0.01;  // In m/s
 const double DEADZONE = 0.02;
 
