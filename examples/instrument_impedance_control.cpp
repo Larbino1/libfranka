@@ -76,9 +76,9 @@ int main(int argc, char** argv) {
         loopCounter = (loopCounter + 1) % 20;
         if (loopCounter == 0) {
           poll_SDL_events();
-	  ref.vel.topRows(2) << right_stick.read();
-	  double d = triggers.read();
-          ref.vel(2) = d; // third row
+          ref.vel.topRows(2) << right_stick.read();
+          double d = triggers.read();
+          ref.vel(2) = d;  // third row
         }
         ref.update(duration.toSec());
 
