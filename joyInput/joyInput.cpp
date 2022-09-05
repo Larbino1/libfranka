@@ -43,24 +43,25 @@ SDL_Joystick* controllerInit() {
           name, num_axes, num_buttons, num_hats);
       printf("Expected 6, 11 and 1.");
       exit(1);
-    } else {
-      fprintf(stderr, "Couldn't open the joystick (SDL_Joystick*==NULL)\n");
-      exit(1);
-    }
+    } 
     return controller;
+  }
+  else {
+    fprintf(stderr, "Couldn't open the joystick (SDL_Joystick*==NULL)\n");
+    exit(1);
   }
 }
 
 class RefState {
  public:
-  Eigen::Vector3d mpos;
-  Eigen::Vector3d mvel;
-  RefState(Eigen::Vector3d pos) {
-    mpos = pos;
-    mvel.setZero();
+  Eigen::Vector3d pos;
+  Eigen::Vector3d vel;
+  RefState(Eigen::Vector3d pos0) {
+    pos = pos0;
+    vel.setZero();
   }
   void update(double dt) {  // Method/function defined inside the class
-    mpos += mvel * dt;
+    pos += vel * dt;
   }
 };
 
@@ -73,9 +74,6 @@ void with_controller(F&& f) {
 }
 
 int main() {
-  // Open the joystick for reading and store its handle in the joy variable
-  SDL_Joystick* joy = controllerInit();
-
   RefState ref(Eigen::Vector3d::Zero());
 
   with_controller([&](SDL_Joystick* controller) {
@@ -85,6 +83,7 @@ int main() {
     const double dtd = 0.01;  // in seconds
     auto next = steady_clock::now() + dt;
     auto prev = next - dt;
+    int quit = 0;
     while (quit == 0) {
       if (prev > next) {
         std::cerr << "Error. Controller input loop too slow..." << std::endl;
@@ -94,8 +93,8 @@ int main() {
       next += dt;
 
       // Read inputs
-      dx = deadzone(SDL_JoystickGetAxis(controller, 3) * AX_SCALE);
-      dy = -deadzone(SDL_JoystickGetAxis(controller, 4) * AX_SCALE);
+      double dx = deadzone(SDL_JoystickGetAxis(controller, 3) * AX_SCALE);
+      double dy = -deadzone(SDL_JoystickGetAxis(controller, 4) * AX_SCALE);
 
       ref.vel[0] = dx;
       ref.vel[1] = dy; 
