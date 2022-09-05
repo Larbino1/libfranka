@@ -80,18 +80,19 @@ class StickReader {
     out_max = out_max_;
   }
   Eigen::Vector2d read() {
+    SDL_Event event;
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_QUIT) {
-        std::cerr <<“Termination signal caught, exiting.”<< endl;
+        std::cerr << "Termination signal caught, exiting." << std::endl;
         exit(1);
       }
     }
     Eigen::Vector2d ret;
-    ret << deadzone(SDL_JoystickGetAxis(controller, ax_x_ID) / ax_max) * out_max,
-        -deadzone(SDL_JoystickGetAxis(controller, ax_y_ID) / ax_max) * out_max;
+    ret << deadzone(SDL_JoystickGetAxis(joy, ax_x_ID) / ax_max) * out_max,
+        -deadzone(SDL_JoystickGetAxis(joy, ax_y_ID) / ax_max) * out_max;
     return ret;
   }
-}
+};
 
 template <class F>
 void with_controller(F&& f) {
@@ -122,7 +123,7 @@ int main() {
       next += dt;
 
       // Read inputs
-      ref.vel.toprows(2) << right_stick.read();
+      ref.vel.topRows(2) << right_stick.read();
       ref.update(dtd);
 
       std::cout << ref.pos << std::endl;
