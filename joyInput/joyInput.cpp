@@ -70,14 +70,7 @@ Eigen::Vector2d StickReader::read() {
   return ret;
 }
 
-template <class F>
-void with_controller(F&& f) {
-  SDL_Joystick* controller = controllerInit();
-  f(controller);
-  SDL_JoystickClose(controller);
-  SDL_Quit();
-}
-
+/*
 int main() {
   RefState ref(Eigen::Vector3d::Zero());
 
@@ -110,4 +103,4 @@ int main() {
     }
   });
   return 0;
-}
+}*/

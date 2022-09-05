@@ -20,6 +20,7 @@ add_library(examples_common STATIC
 
 target_link_libraries(examples_common PUBLIC Franka::Franka Eigen3::Eigen3)
 target_link_libraries(examples_common PUBLIC MyLib)
+target_link_libraries(examples_common PUBLIC JoyInputLib)
 
 set(EXAMPLES
   cartesian_impedance_control

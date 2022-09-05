@@ -50,8 +50,6 @@ int main(int argc, char** argv) {
     Eigen::Affine3d initial_transform(Eigen::Matrix4d::Map(initial_state.O_T_EE.data()));
     Eigen::Vector3d position_d(initial_transform * ee_offset);
     DRef ref;
-    std::future<DRef> future = std::async(read_reference_input);
-    std::chrono::microseconds timeout(100);
 
     // set collision behavior
     robot.setCollisionBehavior(
@@ -97,7 +95,7 @@ int main(int argc, char** argv) {
                 << "Press Enter to continue..." << std::endl;
       std::cin.ignore();
       robot.control(impedance_control_callback);
-  }
+  });
   } catch (const franka::Exception& ex) {
     // print exception
     std::cout << ex.what() << std::endl;

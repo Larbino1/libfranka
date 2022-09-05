@@ -83,7 +83,6 @@ int main(int argc, char** argv) {
       // compute control
       Eigen::VectorXd tau_d(7);
       tau_d << jacobian.transpose() * (-stiffness * error - damping * (jacobian * dq));
-      //tau_d.setZero();
 
       // convert to double array
       std::array<double, 7> tau_d_array{};
