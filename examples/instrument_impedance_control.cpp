@@ -16,7 +16,7 @@
 
 #include "examples_common.h"
 
-const double VMAX = 0.01;  // In m/s
+const double VMAX = 0.05;  // In m/s
 
 int main(int argc, char** argv) {
   std::cout << "Instrument impedance control demo" << std::endl;
@@ -60,12 +60,12 @@ int main(int argc, char** argv) {
 
     with_controller([&](SDL_Joystick* controller) {
       // Define input functions
-      StickReader right_stick(controller, 3, 4, AX_MAX, VMAX);
+      StickReader right_stick(controller, 4, 3, AX_MAX, VMAX);
 
       // define callback for the torque control loop
       std::function<franka::Torques(const franka::RobotState&, franka::Duration)>
           impedance_control_callback = [&](const franka::RobotState& robot_state,
-                                           franka::Duration /*duration*/) -> franka::Torques {
+                                           franka::Duration duration) -> franka::Torques {
         Eigen::Affine3d current_transform(Eigen::Matrix4d::Map(robot_state.O_T_EE.data()));
         Eigen::Map<const Eigen::Matrix<double, 6, 7>> geometric_jacobian(
             model.zeroJacobian(frame, robot_state).data());
@@ -73,9 +73,10 @@ int main(int argc, char** argv) {
         Eigen::Map<const Eigen::Matrix<double, 7, 1>> dq(robot_state.dq.data());
 
         loopCounter = (loopCounter + 1) % 20;
-        if loopCounter == 0 {
-          ref.toprows(2) << StickReader.read();
+        if (loopCounter == 0) {
+          ref.vel.topRows(2) << right_stick.read();
         }
+	ref.update(duration.toSec());
 
         // compute control coordinate error and jacobian
         Eigen::Vector3d position(current_transform * ee_offset);
