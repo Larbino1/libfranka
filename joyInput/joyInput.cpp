@@ -56,17 +56,16 @@ void RefState::update(double dt) {
 }
 
 Eigen::Vector2d StickReader::read() {
-  SDL_Event event;
-  while (SDL_PollEvent(&event)) {
-    if (event.type == SDL_QUIT) {
-      std::cerr << "Termination signal caught, exiting." << std::endl;
-      exit(1);
-    }
-  }
   Eigen::Vector2d ret;
   ret << deadzone(-SDL_JoystickGetAxis(joy, ax_x_ID) / ax_max) * out_max,
          deadzone(-SDL_JoystickGetAxis(joy, ax_y_ID) / ax_max) * out_max;
   return ret;
+}
+
+double TwoTriggerReader::read() {
+  double pos = (SDL_JoystickGetAxis(joy, trig_pos_ID) / ax_max) + 1);
+  double neg = (SDL_JoystickGetAxis(joy, trig_neg_ID) / ax_max) + 1);
+  return out_max * deadzone(pos - neg);
 }
 
 /*

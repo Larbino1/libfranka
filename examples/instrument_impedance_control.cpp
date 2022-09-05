@@ -61,6 +61,7 @@ int main(int argc, char** argv) {
     with_controller([&](SDL_Joystick* controller) {
       // Define input functions
       StickReader right_stick(controller, 4, 3, AX_MAX, VMAX);
+      TriggerReader triggers(controller, 2, 5, AX_MAX, VMAX);
 
       // define callback for the torque control loop
       std::function<franka::Torques(const franka::RobotState&, franka::Duration)>
@@ -74,9 +75,18 @@ int main(int argc, char** argv) {
 
         loopCounter = (loopCounter + 1) % 20;
         if (loopCounter == 0) {
+          SDL_Event event;
+          while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+              std::cerr << "Termination signal caught, exiting." << std::endl;
+              exit(1);
+            }
+          }
           ref.vel.topRows(2) << right_stick.read();
+          // ref.vel.row(3) << triggers.read();
+          std::cout << triggers.read() << std::endl;
         }
-	ref.update(duration.toSec());
+        ref.update(duration.toSec());
 
         // compute control coordinate error and jacobian
         Eigen::Vector3d position(current_transform * ee_offset);

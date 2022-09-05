@@ -38,6 +38,27 @@ class StickReader {
   Eigen::Vector2d read();
 };
 
+class TriggerReader {
+ private:
+  SDL_Joystick* joy;
+  int trig_pos_ID;
+  int trig_neg_ID;
+  double trig_max;
+  double out_max;
+
+ public:
+  TriggerReader(SDL_Joystick* joy_, int trig_pos_ID_, int trig_neg_ID_,
+                double trig_max_, double out_max_) {
+    joy = joy_;
+    trig_pos_ID = trig_pos_ID_;
+    trig_neg_ID = trig_neg_ID_;
+    ax_max = trig_max_;
+    out_max = out_max_;
+  }
+  Eigen::Vector2d read();
+};
+
+
 template <class F>
 void with_controller(F&& f) {
   SDL_Joystick* controller = controllerInit();
