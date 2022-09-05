@@ -68,7 +68,7 @@ void RefState::update(double dt) {
 Eigen::Vector2d StickReader::read() {
   Eigen::Vector2d ret;
   ret << deadzone(-SDL_JoystickGetAxis(joy, ax_x_ID) / ax_max) * out_max,
-         deadzone(-SDL_JoystickGetAxis(joy, ax_y_ID) / ax_max) * out_max;
+      deadzone(-SDL_JoystickGetAxis(joy, ax_y_ID) / ax_max) * out_max;
   return ret;
 }
 

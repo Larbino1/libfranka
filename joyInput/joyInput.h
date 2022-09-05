@@ -49,8 +49,11 @@ class TwoTriggerReader {
   double out_max;
 
  public:
-  TwoTriggerReader(SDL_Joystick* joy_, int trig_pos_ID_, int trig_neg_ID_,
-                double trig_max_, double out_max_) {
+  TwoTriggerReader(SDL_Joystick* joy_,
+                   int trig_pos_ID_,
+                   int trig_neg_ID_,
+                   double trig_max_,
+                   double out_max_) {
     joy = joy_;
     trig_pos_ID = trig_pos_ID_;
     trig_neg_ID = trig_neg_ID_;
@@ -59,7 +62,6 @@ class TwoTriggerReader {
   }
   double read();
 };
-
 
 template <class F>
 void with_controller(F&& f) {
