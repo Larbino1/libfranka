@@ -45,7 +45,6 @@ if(BUILD_COVERAGE)
 endif()
 
 ## Submodules
-add_subdirectory(common)
 add_subdirectory(myLib)
 add_subdirectory(joyInput)
 

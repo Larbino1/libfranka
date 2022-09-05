@@ -7,6 +7,8 @@
 
 #include <SDL2/SDL.h>
 
+#include "joyInput.h"
+
 const double AX_MAX = pow(2, 15);
 const double VMAX = 0.01;  // In m/s
 const double DEADZONE = 0.02;
@@ -50,49 +52,23 @@ SDL_Joystick* controllerInit() {
   }
 }
 
-class RefState {
- public:
-  Eigen::Vector3d pos;
-  Eigen::Vector3d vel;
-  RefState(Eigen::Vector3d pos0) {
-    pos = pos0;
-    vel.setZero();
-  }
-  void update(double dt) {  // Method/function defined inside the class
-    pos += vel * dt;
-  }
-};
+void RefState::update(double dt) {
+  pos += vel * dt;
+}
 
-class StickReader {
- private:
-  SDL_Joystick* joy;
-  int ax_x_ID;
-  int ax_y_ID;
-  double ax_max;
-  double out_max;
-
- public:
-  StickReader(SDL_Joystick* joy_, int ax_x_ID_, int ax_y_ID_, double ax_max_, double out_max_) {
-    joy = joy_;
-    ax_x_ID = ax_x_ID_;
-    ax_y_ID = ax_y_ID_;
-    ax_max = ax_max_;
-    out_max = out_max_;
-  }
-  Eigen::Vector2d read() {
-    SDL_Event event;
-    while (SDL_PollEvent(&event)) {
-      if (event.type == SDL_QUIT) {
-        std::cerr << "Termination signal caught, exiting." << std::endl;
-        exit(1);
-      }
+Eigen::Vector2d StickReader::read() {
+  SDL_Event event;
+  while (SDL_PollEvent(&event)) {
+    if (event.type == SDL_QUIT) {
+      std::cerr << "Termination signal caught, exiting." << std::endl;
+      exit(1);
     }
-    Eigen::Vector2d ret;
-    ret << deadzone(SDL_JoystickGetAxis(joy, ax_x_ID) / ax_max) * out_max,
-        -deadzone(SDL_JoystickGetAxis(joy, ax_y_ID) / ax_max) * out_max;
-    return ret;
   }
-};
+  Eigen::Vector2d ret;
+  ret << deadzone(SDL_JoystickGetAxis(joy, ax_x_ID) / ax_max) * out_max,
+      -deadzone(SDL_JoystickGetAxis(joy, ax_y_ID) / ax_max) * out_max;
+  return ret;
+}
 
 template <class F>
 void with_controller(F&& f) {

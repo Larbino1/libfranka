@@ -1,9 +1,7 @@
 #include <array>
-#include <cmath>
 #include <chrono>
+#include <cmath>
 #include <functional>
-#include <future>
-#include <thread>
 #include <iostream>
 
 #include <Eigen/Dense>
@@ -13,6 +11,7 @@
 #include <franka/model.h>
 #include <franka/robot.h>
 
+#include "joyInput.h"
 #include "myLib.h"
 
 #include "examples_common.h"
@@ -55,53 +54,50 @@ int main(int argc, char** argv) {
     std::chrono::microseconds timeout(100);
 
     // set collision behavior
-    robot.setCollisionBehavior({{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
-                               {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
-                               {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
-                               {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0}});
+    robot.setCollisionBehavior(
+        {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}}, {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
+        {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0}}, {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0}});
 
-    // define callback for the torque control loop
-    std::function<franka::Torques(const franka::RobotState&, franka::Duration)>
-        impedance_control_callback = [&](const franka::RobotState& robot_state,
-                                         franka::Duration /*duration*/) -> franka::Torques {
-      Eigen::Affine3d current_transform(Eigen::Matrix4d::Map(robot_state.O_T_EE.data()));
-      Eigen::Map<const Eigen::Matrix<double, 6, 7>> geometric_jacobian(model.zeroJacobian(frame, robot_state).data());
-      Eigen::Map<const Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
-      Eigen::Map<const Eigen::Matrix<double, 7, 1>> dq(robot_state.dq.data());
+  with_controller([&] (SDL_Joystick* controller) {
+      
+      // define callback for the torque control loop
+      std::function<franka::Torques(const franka::RobotState&, franka::Duration)>
+          impedance_control_callback = [&](const franka::RobotState& robot_state,
+                                           franka::Duration /*duration*/) -> franka::Torques {
+        Eigen::Affine3d current_transform(Eigen::Matrix4d::Map(robot_state.O_T_EE.data()));
+        Eigen::Map<const Eigen::Matrix<double, 6, 7>> geometric_jacobian(
+            model.zeroJacobian(frame, robot_state).data());
+        Eigen::Map<const Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
+        Eigen::Map<const Eigen::Matrix<double, 7, 1>> dq(robot_state.dq.data());
 
-      if (future.wait_for(timeout) == std::future_status::ready) {
-        ref = future.get();
-	std::cout << ref.r << std::endl;
-        future = std::async(read_reference_input);
-      }
-      // compute control coordinate error and jacobian
-      Eigen::Vector3d position(current_transform * ee_offset);
-      Eigen::Matrix<double, 3, 1> error(position - position_d);
-      auto jacobian = offset_jacobian(current_transform, geometric_jacobian, ee_offset);
+        // compute control coordinate error and jacobian
+        Eigen::Vector3d position(current_transform * ee_offset);
+        Eigen::Matrix<double, 3, 1> error(position - position_d);
+        auto jacobian = offset_jacobian(current_transform, geometric_jacobian, ee_offset);
 
-      // Check error not too large
-      if (error.norm() > 0.05) {
-        throw std::runtime_error("Aborting; too far away from starting pose!");
-      }
+        // Check error not too large
+        if (error.norm() > 0.05) {
+          throw std::runtime_error("Aborting; too far away from starting pose!");
+        }
 
-      // compute control
-      Eigen::VectorXd tau_d(7);
-      tau_d << jacobian.transpose() * (-stiffness * error - damping * (jacobian * dq));
+        // compute control
+        Eigen::VectorXd tau_d(7);
+        tau_d << jacobian.transpose() * (-stiffness * error - damping * (jacobian * dq));
 
-      // convert to double array
-      std::array<double, 7> tau_d_array{};
-      Eigen::VectorXd::Map(&tau_d_array[0], 7) = tau_d; 
-      return tau_d_array;
-    };
+        // convert to double array
+        std::array<double, 7> tau_d_array{};
+        Eigen::VectorXd::Map(&tau_d_array[0], 7) = tau_d;
+        return tau_d_array;
+      };
 
-    // start real-time control loop
-    std::cout << "WARNING: Collision thresholds are set to high values. "
-              << "Make sure you have the user stop at hand!" << std::endl
-              << "After starting try to push the robot and see how it reacts." << std::endl
-              << "Press Enter to continue..." << std::endl;
-    std::cin.ignore();
-    robot.control(impedance_control_callback);
-
+      // start real-time control loop
+      std::cout << "WARNING: Collision thresholds are set to high values. "
+                << "Make sure you have the user stop at hand!" << std::endl
+                << "After starting try to push the robot and see how it reacts." << std::endl
+                << "Press Enter to continue..." << std::endl;
+      std::cin.ignore();
+      robot.control(impedance_control_callback);
+  }
   } catch (const franka::Exception& ex) {
     // print exception
     std::cout << ex.what() << std::endl;
