@@ -6,6 +6,8 @@ const double AX_MAX = pow(2, 15);
 
 double deadzone(double val);
 
+void poll_SDL_events();
+
 SDL_Joystick* controllerInit();
 
 class RefState {
@@ -38,7 +40,7 @@ class StickReader {
   Eigen::Vector2d read();
 };
 
-class TriggerReader {
+class TwoTriggerReader {
  private:
   SDL_Joystick* joy;
   int trig_pos_ID;
@@ -47,15 +49,15 @@ class TriggerReader {
   double out_max;
 
  public:
-  TriggerReader(SDL_Joystick* joy_, int trig_pos_ID_, int trig_neg_ID_,
+  TwoTriggerReader(SDL_Joystick* joy_, int trig_pos_ID_, int trig_neg_ID_,
                 double trig_max_, double out_max_) {
     joy = joy_;
     trig_pos_ID = trig_pos_ID_;
     trig_neg_ID = trig_neg_ID_;
-    ax_max = trig_max_;
+    trig_max = trig_max_;
     out_max = out_max_;
   }
-  Eigen::Vector2d read();
+  double read();
 };
 
 

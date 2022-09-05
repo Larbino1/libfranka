@@ -20,6 +20,16 @@ double deadzone(double val) {
   }
 }
 
+void poll_SDL_events() {
+  SDL_Event event;
+  while (SDL_PollEvent(&event)) {
+    if (event.type == SDL_QUIT) {
+      std::cerr << "Termination signal caught, exiting." << std::endl;
+      exit(1);
+    }
+  }
+}
+
 SDL_Joystick* controllerInit() {
   std::cout << "Starting controller input" << std::endl;
   if (SDL_Init(SDL_INIT_JOYSTICK) < 0) {
@@ -63,8 +73,8 @@ Eigen::Vector2d StickReader::read() {
 }
 
 double TwoTriggerReader::read() {
-  double pos = (SDL_JoystickGetAxis(joy, trig_pos_ID) / ax_max) + 1);
-  double neg = (SDL_JoystickGetAxis(joy, trig_neg_ID) / ax_max) + 1);
+  double pos = (SDL_JoystickGetAxis(joy, trig_pos_ID) / trig_max) + 1;
+  double neg = (SDL_JoystickGetAxis(joy, trig_neg_ID) / trig_max) + 1;
   return out_max * deadzone(pos - neg);
 }
 
