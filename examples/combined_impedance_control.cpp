@@ -16,8 +16,6 @@
 
 #include "examples_common.h"
 
-const double MAX_ERR = 0.04; // in m
-const double MAX_DQ = 1.0; // in rad/s
 const double VMAX = 0.05;  // In m/s
 
 int main(int argc, char** argv) {
@@ -37,17 +35,12 @@ int main(int argc, char** argv) {
   const Eigen::Vector3d u2{0.0, 0.0, 1.0};
 
   // Compliance parameters
-  const double stiffness{2000.0};
-  const double damping{20.0};
-  Eigen::MatrixXd ee_stiffness(3, 3), ee_damping(3, 3), port_stiffness(2, 2), port_damping(2, 2);
-  ee_stiffness.setZero();
-  ee_stiffness.topLeftCorner(3, 3) << stiffness * Eigen::MatrixXd::Identity(3, 3);
-  ee_damping.setZero();
-  ee_damping.topLeftCorner(3, 3) << damping * Eigen::MatrixXd::Identity(3, 3);
-  port_stiffness.setZero();
-  port_stiffness.topLeftCorner(2, 2) << stiffness * Eigen::MatrixXd::Identity(2, 2);
-  port_damping.setZero();
-  port_damping.topLeftCorner(2, 2) << damping * Eigen::MatrixXd::Identity(2, 2);
+  const double stiffness{500.0};
+  const double damping{2.0 * sqrt(stiffness)};
+  DiagonalSpringDamper ee_impedance(Eigen::Array3d::Constant(stiffness),
+                                    Eigen::Array3d::Constant(damping));
+  DiagonalSpringDamper port_impedance(Eigen::Array2d::Constant(stiffness),
+                                      Eigen::Array2d::Constant(damping));
 
   try {
     // connect to robot
@@ -55,13 +48,12 @@ int main(int argc, char** argv) {
     setDefaultBehavior(robot);
     // load the kinematics and dynamics model
     franka::Model model = robot.loadModel();
-
     franka::RobotState initial_state = robot.readOnce();
 
-    // equilibrium point is the initial position
-    Eigen::Affine3d initial_transform(Eigen::Matrix4d::Map(initial_state.O_T_EE.data()));
-    RefState ref(initial_transform * ee_offset);
-    int loopCounter = 0;
+    // setup ee
+    WorldCoord ee;
+    ee.offset = ee_offset;
+    ee.ref = ref.pos;
 
     // setup port
     Eigen::Vector3d rcm(initial_transform * rcm_offset);
@@ -70,6 +62,11 @@ int main(int argc, char** argv) {
     port.u1 = u1;
     port.u2 = u2;
     port.offset = rcm_offset;
+
+    // equilibrium point is the initial position
+    Eigen::Affine3d initial_transform(Eigen::Matrix4d::Map(initial_state.O_T_EE.data()));
+    RefState ref(initial_transform * ee_offset);
+    int loopCounter = 0;
 
     // set collision behavior
     robot.setCollisionBehavior(
@@ -85,11 +82,10 @@ int main(int argc, char** argv) {
       std::function<franka::Torques(const franka::RobotState&, franka::Duration)>
           impedance_control_callback = [&](const franka::RobotState& robot_state,
                                            franka::Duration duration) -> franka::Torques {
-        Eigen::Affine3d current_transform(Eigen::Matrix4d::Map(robot_state.O_T_EE.data()));
-        Eigen::Map<const Eigen::Matrix<double, 6, 7>> geometric_jacobian(
-            model.zeroJacobian(frame, robot_state).data());
-        Eigen::Map<const Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
-        Eigen::Map<const Eigen::Matrix<double, 7, 1>> dq(robot_state.dq.data());
+        ImpedanceCoordArgs iargs;
+        iargs.transform(Eigen::Matrix4d::Map(robot_state.O_T_EE.data()));
+        iargs.dq(robot_state.dq.data());
+        iargs.J(model.zeroJacobian(frame, robot_state).data());
 
         loopCounter = (loopCounter + 1) % 20;
         if (loopCounter == 0) {
@@ -99,30 +95,20 @@ int main(int argc, char** argv) {
           ref.vel(2) = d;  // third row
         }
         ref.update(duration.toSec());
+        ee.ref = ref.pos;
 
         // compute control coordinate error and jacobian
-        Eigen::Vector3d position(current_transform * ee_offset);
-        Eigen::Matrix<double, 3, 1> ee_error(position - ref.pos);
-        auto ee_jacobian = offset_jacobian(current_transform, geometric_jacobian, ee_offset);
-
-        auto coord_result = computePortCoord(current_transform, geometric_jacobian, port);
-        auto port_error = coord_result.error;
-        auto port_jacobian = coord_result.jacobian;
+        auto ee_coord = computeWorldCoord(iargs, ee);
+        auto port_coord = computePortCoord(iargs, port);
 
         // Check error not too large
-        if (ee_error.norm() > MAX_ERR || port_error.norm() > MAX_ERR) {
+        if (ee_coord.z.norm() > 0.05 || port_coord.z.norm() > 0.05) {
           throw std::runtime_error("Aborting; too far away from starting pose!");
-        }
-        if (dq.cwiseAbs().maxCoeff() > MAX_DQ) {
-          throw std::runtime_error("Aborting; Joint velocity too high");
         }
 
         // compute control
         Eigen::VectorXd tau_d(7);
-        tau_d << ee_jacobian.transpose() *
-                         (-ee_stiffness * ee_error - ee_damping * (ee_jacobian * dq)) +
-                     port_jacobian.transpose() *
-                         (-port_stiffness * port_error - port_damping * (port_jacobian * dq));
+        tau_d << ee_impedance.F(ee_coord) + port_impedance.F(port_coord);
 
         // convert to double array
         std::array<double, 7> tau_d_array{};
