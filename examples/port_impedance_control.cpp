@@ -23,18 +23,15 @@ int main(int argc, char** argv) {
 
   // Geometric parameters
   const auto frame = franka::Frame::kEndEffector;
-  const Eigen::Vector3d rcm_offset({0.422, 0.0, 0.042});
+  const Eigen::Vector3d rcm_offset({0.377, 0.0, 0.042});
   const Eigen::Vector3d u1{0.0, 1.0, 0.0};
   const Eigen::Vector3d u2{0.0, 0.0, 1.0};
 
   // Compliance parameters
-  const double translational_stiffness{600.0};
-  Eigen::MatrixXd stiffness(2, 2), damping(2, 2);
-  stiffness.setZero();
-  stiffness.topLeftCorner(2, 2) << translational_stiffness * Eigen::MatrixXd::Identity(2, 2);
-  damping.setZero();
-  damping.topLeftCorner(2, 2) << 2.0 * sqrt(translational_stiffness) *
-                                     Eigen::MatrixXd::Identity(2, 2);
+  const double stiffness{1000.0};
+  const double damping{20.0};
+  DiagonalSpringDamper<2,7> port_impedance{Eigen::Array2d::Constant(stiffness),
+                                           Eigen::Array2d::Constant(damping)};
 
   try {
     // connect to robot
@@ -65,24 +62,20 @@ int main(int argc, char** argv) {
         impedance_control_callback = [&](const franka::RobotState& robot_state,
                                          franka::Duration /*duration*/) -> franka::Torques {
       // get state variables
-      Eigen::Affine3d current_transform(Eigen::Matrix4d::Map(robot_state.O_T_EE.data()));
-      Eigen::Map<const Eigen::Matrix<double, 6, 7>> geometric_jacobian(model.zeroJacobian(frame, robot_state).data());
-      Eigen::Map<const Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
-      Eigen::Map<const Eigen::Matrix<double, 7, 1>> dq(robot_state.dq.data());
+      ImpedanceCoordArgs iargs(robot_state, model, frame);
+      // Eigen::Map<const Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
 
-      auto coord_result = computePortCoord(current_transform, geometric_jacobian, port);
-      auto error = coord_result.error;
-      auto jacobian = coord_result.jacobian;
+      auto port_coord = computePortCoord(iargs, port);
 
       // convert to Eigen
       // Check error not too large
-      if (error.norm() > 0.05) {
+      if (port_coord.z.norm() > 0.05) {
         throw std::runtime_error("Aborting; too far away from starting pose!");
       }
 
       // compute control
       Eigen::VectorXd tau_d(7);
-      tau_d << jacobian.transpose() * (-stiffness * error - damping * (jacobian * dq));
+      tau_d << port_impedance.F(port_coord);
 
       // convert to double array
       std::array<double, 7> tau_d_array{};

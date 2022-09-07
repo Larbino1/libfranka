@@ -33,7 +33,7 @@ ImpedanceCoordResult<3, 7> computeWorldCoord(ImpedanceCoordArgs iargs, WorldCoor
   ImpedanceCoordResult<3, 7> result;
   result.z = ee_error;
   result.dz = ee_jacobian * iargs.dq;
-  result.jacobian = ee_jacobian;
+  result.J = ee_jacobian;
   return result;
 }
 
@@ -57,7 +57,7 @@ ImpedanceCoordResult<2, 7> computePortCoord(ImpedanceCoordArgs iargs, PortCoord 
   ImpedanceCoordResult<2, 7> ret;
   ret.z = error;
   ret.dz = jacobian * iargs.dq;
-  ret.jacobian = jacobian;
+  ret.J = jacobian;
   return ret;
 }
 

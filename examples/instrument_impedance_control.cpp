@@ -27,17 +27,14 @@ int main(int argc, char** argv) {
   }
 
   // Geometric parameters
-  const Eigen::Vector3d ee_offset({0.422, 0.0, 0.042});
+  const Eigen::Vector3d ee_offset({0.377, 0.0, 0.042});
   const auto frame = franka::Frame::kEndEffector;
 
   // Compliance parameters
-  const double translational_stiffness{500.0};
-  Eigen::MatrixXd stiffness(3, 3), damping(3, 3);
-  stiffness.setZero();
-  stiffness.topLeftCorner(3, 3) << translational_stiffness * Eigen::MatrixXd::Identity(3, 3);
-  damping.setZero();
-  damping.topLeftCorner(3, 3) << 2.0 * sqrt(translational_stiffness) *
-                                     Eigen::MatrixXd::Identity(3, 3);
+  const double stiffness{1000.0};
+  const double damping{20.0};
+  DiagonalSpringDamper<3,7> ee_impedance{Eigen::Array3d::Constant(stiffness),
+                                         Eigen::Array3d::Constant(damping)};
 
   try {
     // connect to robot
@@ -53,6 +50,11 @@ int main(int argc, char** argv) {
     RefState ref(initial_transform * ee_offset);
     int loopCounter = 0;
 
+    // setup ee
+    WorldCoord ee;
+    ee.offset = ee_offset;
+    ee.ref = ref.pos;
+
     // set collision behavior
     robot.setCollisionBehavior(
         {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}}, {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
@@ -67,11 +69,8 @@ int main(int argc, char** argv) {
       std::function<franka::Torques(const franka::RobotState&, franka::Duration)>
           impedance_control_callback = [&](const franka::RobotState& robot_state,
                                            franka::Duration duration) -> franka::Torques {
-        Eigen::Affine3d current_transform(Eigen::Matrix4d::Map(robot_state.O_T_EE.data()));
-        Eigen::Map<const Eigen::Matrix<double, 6, 7>> geometric_jacobian(
-            model.zeroJacobian(frame, robot_state).data());
-        Eigen::Map<const Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
-        Eigen::Map<const Eigen::Matrix<double, 7, 1>> dq(robot_state.dq.data());
+        // Eigen::Map<const Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
+        ImpedanceCoordArgs iargs(robot_state, model, frame);
 
         loopCounter = (loopCounter + 1) % 20;
         if (loopCounter == 0) {
@@ -81,20 +80,19 @@ int main(int argc, char** argv) {
           ref.vel(2) = d;  // third row
         }
         ref.update(duration.toSec());
+        ee.ref = ref.pos;
 
         // compute control coordinate error and jacobian
-        Eigen::Vector3d position(current_transform * ee_offset);
-        Eigen::Matrix<double, 3, 1> error(position - ref.pos);
-        auto jacobian = offset_jacobian(current_transform, geometric_jacobian, ee_offset);
+        auto ee_coord = computeWorldCoord(iargs, ee);
 
         // Check error not too large
-        if (error.norm() > 0.05) {
+        if (ee_coord.z.norm() > 0.05) {
           throw std::runtime_error("Aborting; too far away from starting pose!");
         }
 
         // compute control
         Eigen::VectorXd tau_d(7);
-        tau_d << jacobian.transpose() * (-stiffness * error - damping * (jacobian * dq));
+        tau_d << ee_impedance.F(ee_coord); 
 
         // convert to double array
         std::array<double, 7> tau_d_array{};

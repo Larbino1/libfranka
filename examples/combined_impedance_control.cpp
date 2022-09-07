@@ -28,19 +28,19 @@ int main(int argc, char** argv) {
 
   // Geometric parameters
   const double z_offset = 0.042;
-  const Eigen::Vector3d ee_offset({0.422, 0.0, z_offset});
+  const Eigen::Vector3d ee_offset({0.377, 0.0, z_offset});
   const auto frame = franka::Frame::kEndEffector;
   const Eigen::Vector3d rcm_offset({0.2, 0.0, z_offset});
   const Eigen::Vector3d u1{0.0, 1.0, 0.0};
   const Eigen::Vector3d u2{0.0, 0.0, 1.0};
 
   // Compliance parameters
-  const double stiffness{500.0};
-  const double damping{2.0 * sqrt(stiffness)};
-  DiagonalSpringDamper ee_impedance(Eigen::Array3d::Constant(stiffness),
-                                    Eigen::Array3d::Constant(damping));
-  DiagonalSpringDamper port_impedance(Eigen::Array2d::Constant(stiffness),
-                                      Eigen::Array2d::Constant(damping));
+  const double stiffness{1200.0};
+  const double damping{10.0};
+  DiagonalSpringDamper<3,7> ee_impedance{Eigen::Array3d::Constant(stiffness),
+                                         Eigen::Array3d::Constant(damping)};
+  DiagonalSpringDamper<2,7> port_impedance{Eigen::Array2d::Constant(stiffness),
+                                           Eigen::Array2d::Constant(damping)};
 
   try {
     // connect to robot
@@ -49,6 +49,11 @@ int main(int argc, char** argv) {
     // load the kinematics and dynamics model
     franka::Model model = robot.loadModel();
     franka::RobotState initial_state = robot.readOnce();
+
+    // equilibrium point is the initial position
+    Eigen::Affine3d initial_transform(Eigen::Matrix4d::Map(initial_state.O_T_EE.data()));
+    RefState ref(initial_transform * ee_offset);
+    int loopCounter = 0;
 
     // setup ee
     WorldCoord ee;
@@ -62,11 +67,6 @@ int main(int argc, char** argv) {
     port.u1 = u1;
     port.u2 = u2;
     port.offset = rcm_offset;
-
-    // equilibrium point is the initial position
-    Eigen::Affine3d initial_transform(Eigen::Matrix4d::Map(initial_state.O_T_EE.data()));
-    RefState ref(initial_transform * ee_offset);
-    int loopCounter = 0;
 
     // set collision behavior
     robot.setCollisionBehavior(
@@ -82,10 +82,7 @@ int main(int argc, char** argv) {
       std::function<franka::Torques(const franka::RobotState&, franka::Duration)>
           impedance_control_callback = [&](const franka::RobotState& robot_state,
                                            franka::Duration duration) -> franka::Torques {
-        ImpedanceCoordArgs iargs;
-        iargs.transform(Eigen::Matrix4d::Map(robot_state.O_T_EE.data()));
-        iargs.dq(robot_state.dq.data());
-        iargs.J(model.zeroJacobian(frame, robot_state).data());
+        ImpedanceCoordArgs iargs(robot_state, model, frame);
 
         loopCounter = (loopCounter + 1) % 20;
         if (loopCounter == 0) {
