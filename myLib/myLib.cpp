@@ -61,7 +61,16 @@ ImpedanceCoordResult<2, 7> computePortCoord(ImpedanceCoordArgs iargs, PortCoord 
   return ret;
 }
 
-Eigen::Vector3d register_point(franka::Robot robot, Eigen::Vector3d offset) {
+Eigen::Vector3d register_point(franka::Robot& robot, Eigen::Vector3d offset) {
+  franka::RobotState state;
+  Eigen::Vector3d pos;
+  state = robot.readOnce();
+  Eigen::Affine3d transform(Eigen::Map<Eigen::Matrix4d>(state.O_T_EE.data()));
+  pos = transform * offset;
+  return pos;
+}
+
+Eigen::Vector3d register_point_prompt(franka::Robot& robot, Eigen::Vector3d offset) {
   franka::RobotState state;
   Eigen::Vector3d pos;
   char c;
@@ -71,9 +80,7 @@ Eigen::Vector3d register_point(franka::Robot robot, Eigen::Vector3d offset) {
 
       c = std::getchar();
       if (c == '\n') {
-        state = robot.readOnce();
-        Eigen::Affine3d transform(Eigen::Map<Eigen::Matrix4d>(state.O_T_EE.data()));
-        pos = transform * offset;
+	pos = register_point(robot, offset);
         break;
       }
     }

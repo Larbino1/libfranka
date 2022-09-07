@@ -35,12 +35,14 @@ int main(int argc, char** argv) {
   const Eigen::Vector3d u2{0.0, 0.0, 1.0};
 
   // Compliance parameters
-  const double stiffness{1200.0};
-  const double damping{10.0};
-  DiagonalSpringDamper<3,7> ee_impedance{Eigen::Array3d::Constant(stiffness),
-                                         Eigen::Array3d::Constant(damping)};
-  DiagonalSpringDamper<2,7> port_impedance{Eigen::Array2d::Constant(stiffness),
-                                           Eigen::Array2d::Constant(damping)};
+  const double ee_stiffness{800.0};
+  const double port_stiffness{2200.0};
+  const double ee_damping{30.0};
+  const double port_damping{10.0};
+  DiagonalSpringDamper<3,7> ee_impedance{Eigen::Array3d::Constant(ee_stiffness),
+                                         Eigen::Array3d::Constant(ee_damping)};
+  DiagonalSpringDamper<2,7> port_impedance{Eigen::Array2d::Constant(port_stiffness),
+                                           Eigen::Array2d::Constant(port_damping)};
 
   try {
     // connect to robot
@@ -48,11 +50,9 @@ int main(int argc, char** argv) {
     setDefaultBehavior(robot);
     // load the kinematics and dynamics model
     franka::Model model = robot.loadModel();
-    franka::RobotState initial_state = robot.readOnce();
 
     // equilibrium point is the initial position
-    Eigen::Affine3d initial_transform(Eigen::Matrix4d::Map(initial_state.O_T_EE.data()));
-    RefState ref(initial_transform * ee_offset);
+    RefState ref(Eigen::Vector3d::Zero());
     int loopCounter = 0;
 
     // setup ee
@@ -61,9 +61,9 @@ int main(int argc, char** argv) {
     ee.ref = ref.pos;
 
     // setup port
-    Eigen::Vector3d rcm(initial_transform * rcm_offset);
     PortCoord port;
-    port.rcm = rcm;
+    std::cout << "Register the location of the port." << std::endl;
+    port.rcm = register_point_prompt(robot, ee_offset);
     port.u1 = u1;
     port.u2 = u2;
     port.offset = rcm_offset;
@@ -100,7 +100,7 @@ int main(int argc, char** argv) {
 
         // Check error not too large
         if (ee_coord.z.norm() > 0.05 || port_coord.z.norm() > 0.05) {
-          throw std::runtime_error("Aborting; too far away from starting pose!");
+          throw std::runtime_error("Aborting; error too large!");
         }
 
         // compute control
@@ -119,6 +119,7 @@ int main(int argc, char** argv) {
                 << "After starting try to push the robot and see how it reacts." << std::endl
                 << "Press Enter to continue..." << std::endl;
       std::cin.ignore();
+      ref.pos = register_point(robot, ee_offset);
       robot.control(impedance_control_callback);
     });
   } catch (const franka::Exception& ex) {

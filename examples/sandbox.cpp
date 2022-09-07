@@ -21,14 +21,14 @@
 
 
 int main(int argc, char** argv) {
-  /*// Check whether the required arguments were passed
+  // Check whether the required arguments were passed
   if (argc != 2) {
     std::cerr << "Usage: " << argv[0] << " <robot-hostname>" << std::endl;
     return -1;
   }
 
   // Geometric parameters
-  const Eigen::Vector3d ee_offset({0.422, 0.0, 0.042});
+  const Eigen::Vector3d ee_offset({0.377, 0.0, 0.042});
   const auto frame = franka::Frame::kEndEffector;
 
   // Compliance parameters
@@ -46,16 +46,37 @@ int main(int argc, char** argv) {
     setDefaultBehavior(robot);
     // load the kinematics and dynamics model
     franka::Model model = robot.loadModel();
-
     franka::RobotState initial_state = robot.readOnce();
+    // Register point
+    Eigen::Vector3d position_d = register_point(robot, ee_offset);
 
-    // equilibrium point is the initial position
-    Eigen::Affine3d initial_transform(Eigen::Matrix4d::Map(initial_state.O_T_EE.data()));
-    Eigen::Vector3d position_d(initial_transform * ee_offset);
+
+    // define callback for the torque control loop
+    std::function<franka::Torques(const franka::RobotState&, franka::Duration)>
+        impedance_control_callback = [&](const franka::RobotState& robot_state,
+                                         franka::Duration duration) -> franka::Torques {
+
+      // compute control
+      Eigen::VectorXd tau_d(7);
+      tau_d.fill(0);
+
+      // convert to double array
+      std::array<double, 7> tau_d_array{};
+      Eigen::VectorXd::Map(&tau_d_array[0], 7) = tau_d;
+      return tau_d_array;
+    };
+
+    // start real-time control loop
+    std::cout << "WARNING: Collision thresholds are set to high values. "
+              << "Make sure you have the user stop at hand!" << std::endl
+              << "After starting try to push the robot and see how it reacts." << std::endl
+              << "Press Enter to continue..." << std::endl;
+    std::cin.ignore();
+    robot.control(impedance_control_callback);
   } catch (const franka::Exception& ex) {
     // print exception
     std::cout << ex.what() << std::endl;
   }
-  */
+  
   return 0;
 }
