@@ -72,6 +72,8 @@ int main(int argc, char** argv) {
         // Eigen::Map<const Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
         ImpedanceCoordArgs iargs(robot_state, model, frame);
 
+        std::cout << iargs.J << std::endl;
+
         loopCounter = (loopCounter + 1) % 20;
         if (loopCounter == 0) {
           poll_SDL_events();

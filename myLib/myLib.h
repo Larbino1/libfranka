@@ -40,8 +40,10 @@ struct ImpedanceCoordResult {
 class ImpedanceCoordArgs {
   public:
     Eigen::Affine3d transform;
-    Eigen::Map<const Eigen::Matrix<double, 7, 1>> dq;  // joint velocities
-    Eigen::Map<const Eigen::Matrix<double, 6, 7>> J;   // gemoetric_jacobian
+    Eigen::Matrix<double, 7, 1> dq;  // joint velocities
+    Eigen::Matrix<double, 6, 7> J;   // geometric_jacobian
+    //Eigen::Map<const Eigen::Matrix<double, 7, 1>> dq;  // joint velocities
+    //Eigen::Map<const Eigen::Matrix<double, 6, 7>> J;   // geometric_jacobian
     ImpedanceCoordArgs(franka::RobotState robot_state, franka::Model& model, franka::Frame frame)
       : transform(Eigen::Matrix4d::Map(robot_state.O_T_EE.data()))
       , dq(robot_state.dq.data())
@@ -85,7 +87,7 @@ class VirtualPrismaticJoint {
   {}
 
   void update(double F, double dt) {
-    double qdd = (F - damping * qdot) / inertance;
+    double qdd = (F - damping*qdot) / inertance;
     q += qdot * dt;
     qdot += qdd * dt;
   }
@@ -95,13 +97,13 @@ class VirtualPrismaticJoint {
     Eigen::Vector3d axis = T.linear() * Eigen::Vector3d({0.0, 0.0, 1.0});
 
     // Get slider position in world frame
-    Eigen::Vector3d offset = q * axis;
-    Eigen::Vector3d z(T.translation() + offset);
+    Eigen::Vector3d offset = A*(q * axis); //position of slider in ee_frame
+    Eigen::Vector3d z(iargs.transform * A * (q * axis)); // position of slider in world frame
 
     // Get offset jacobian for slider position
     Eigen::Matrix<double, 3, 7> offset_Jv = offset_jacobian(iargs.transform, iargs.J, offset);
 
-    // Add row
+    // Add col 
     Eigen::Matrix<double, 3, 8> J;
     J.leftCols(7) << offset_Jv;
     J.rightCols(1) << axis;
@@ -110,11 +112,20 @@ class VirtualPrismaticJoint {
     Eigen::Matrix<double, 8, 1> dq_ext;
     dq_ext.topRows(7) << iargs.dq;
     dq_ext.bottomRows(1) << qdot;
+    Eigen::Matrix<double, 3, 1> dz(J * dq_ext);
+
+    //std::cout << "J_geo=\n" << iargs.J << "\n";
+    //std::cout << "J_o=\n" << offset_Jv << "\n";
+    //std::cout << "axis=\n" << axis << "\n";
+    //std::cout << "T=\n" << T.matrix() << "\n";
+    //std::cout << "J=\n" << J << "\n";
+    //std::cout << "dq_ext=\n" << dq_ext << "\n";
+    //std::cout << "dz=\n" << dz << "\n";
 
     // Return output
     ImpedanceCoordResult<3, 8> slider_coord;
     slider_coord.z = z;
-    slider_coord.dz = J * dq_ext;;
+    slider_coord.dz = dz;
     slider_coord.J = J;
     return slider_coord;
   }
