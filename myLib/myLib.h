@@ -70,12 +70,20 @@ class VirtualPrismaticJoint {
  private:
   franka::Frame frame;
   Eigen::Affine3d A;
-  double q;
-  double qdot;
   double inertance;
   double damping;
 
  public:
+  double q;
+  double qdot;
+
+  VirtualPrismaticJoint(franka::Frame f, Eigen::Affine3d transform, double i, double d)
+    : frame(f)
+    , A(transform)
+    , inertance(i)
+    , damping(d)
+  {}
+
   void update(double F, double dt) {
     double qdd = (F - damping * qdot) / inertance;
     q += qdot * dt;
