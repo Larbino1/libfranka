@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
   const Eigen::Vector3d u2{0.0, 0.0, 1.0};
 
   // Compliance parameters
-  const double stiffness{1000.0};
+  const double stiffness{2000.0};
   const double damping{20.0};
   DiagonalSpringDamper<2,7> port_impedance{Eigen::Array2d::Constant(stiffness),
                                            Eigen::Array2d::Constant(damping)};

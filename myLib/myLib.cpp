@@ -37,6 +37,13 @@ ImpedanceCoordResult<3, 7> computeWorldCoord(ImpedanceCoordArgs iargs, WorldCoor
   return result;
 }
 
+ImpedanceCoordResult<7, 7> computeJointCoord(ImpedanceCoordArgs iargs){
+  ImpedanceCoordResult<7, 7> result;
+  result.z = iargs.q;
+  result.dz = iargs.dq;
+  result.J = Eigen::Matrix<double, 7,7>::Identity(7, 7);
+  return result;
+}
 
 ImpedanceCoordResult<2, 7> computePortCoord(ImpedanceCoordArgs iargs, PortCoord port) {
   Eigen::Vector3d position(iargs.transform * port.offset);

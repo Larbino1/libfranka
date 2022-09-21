@@ -31,11 +31,15 @@ int main(int argc, char** argv) {
   const auto frame = franka::Frame::kEndEffector;
 
   // Compliance parameters
-  const double stiffness{1000.0};
+  const double stiffness{2000.0};
   const double damping{20.0};
   DiagonalSpringDamper<3,7> ee_impedance{Eigen::Array3d::Constant(stiffness),
                                          Eigen::Array3d::Constant(damping)};
 
+  const double joint_stiffness{0.0};
+  const double joint_damping{0.5};
+  DiagonalSpringDamper<7,7> joint_impedance{Eigen::Array<double,7,1>::Constant(joint_stiffness),
+                                            Eigen::Array<double,7,1>::Constant(joint_damping)};
   try {
     // connect to robot
     franka::Robot robot(argv[1]);
@@ -84,7 +88,7 @@ int main(int argc, char** argv) {
 
         // compute control coordinate error and jacobian
         auto ee_coord = computeWorldCoord(iargs, ee);
-
+	auto joint_coord = computeJointCoord(iargs);
         // Check error not too large
         if (ee_coord.z.norm() > 0.05) {
           throw std::runtime_error("Aborting; too far away from starting pose!");
@@ -92,7 +96,7 @@ int main(int argc, char** argv) {
 
         // compute control
         Eigen::VectorXd tau_d(7);
-        tau_d << ee_impedance.F(ee_coord); 
+        tau_d << ee_impedance.F(ee_coord) + joint_impedance.F(joint_coord); 
 
         // convert to double array
         std::array<double, 7> tau_d_array{};

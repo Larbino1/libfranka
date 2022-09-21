@@ -40,10 +40,12 @@ struct ImpedanceCoordResult {
 class ImpedanceCoordArgs {
   public:
     Eigen::Affine3d transform;
+    Eigen::Map<const Eigen::Matrix<double, 7, 1>> q;  // joint angles
     Eigen::Map<const Eigen::Matrix<double, 7, 1>> dq;  // joint velocities
     Eigen::Map<const Eigen::Matrix<double, 6, 7>> J;   // gemoetric_jacobian
     ImpedanceCoordArgs(franka::RobotState robot_state, franka::Model& model, franka::Frame frame)
       : transform(Eigen::Matrix4d::Map(robot_state.O_T_EE.data()))
+      , q(robot_state.q.data())
       , dq(robot_state.dq.data())
       , J(model.zeroJacobian(frame, robot_state).data()) 
       {}
@@ -61,6 +63,7 @@ class DiagonalSpringDamper {
 };
 
 ImpedanceCoordResult<2, 7> computePortCoord(ImpedanceCoordArgs iargs, PortCoord port);
+ImpedanceCoordResult<7, 7> computeJointCoord(ImpedanceCoordArgs iargs);
 ImpedanceCoordResult<3, 7> computeWorldCoord(ImpedanceCoordArgs iargs, WorldCoord world);
 
 Eigen::Vector3d register_point(franka::Robot& robot, Eigen::Vector3d offset);
