@@ -102,6 +102,7 @@ class VirtualPrismaticJoint {
 
     // Get offset jacobian for slider position
     Eigen::Matrix<double, 3, 7> offset_Jv = offset_jacobian(iargs.transform, iargs.J, offset);
+    Eigen::Vector3d dz0(offset_Jv * iargs.dq + qdot * axis);
 
     // Add col 
     Eigen::Matrix<double, 3, 8> J;
@@ -120,7 +121,8 @@ class VirtualPrismaticJoint {
     //std::cout << "T=\n" << T.matrix() << "\n";
     //std::cout << "J=\n" << J << "\n";
     //std::cout << "dq_ext=\n" << dq_ext << "\n";
-    //std::cout << "dz=\n" << dz << "\n";
+    std::cout << "dz0=\n" << dz0 << "\n";
+    std::cout << "dz=\n" << dz << "\n";
 
     // Return output
     ImpedanceCoordResult<3, 8> slider_coord;
