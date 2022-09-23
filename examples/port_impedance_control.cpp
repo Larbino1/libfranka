@@ -51,11 +51,13 @@ int main(int argc, char** argv) {
     port.u2 = u2;
     port.offset = rcm_offset;
 
+    const double max_f{50.0};
+    const double max_t{30.0};
+
     // set collision behavior
-    robot.setCollisionBehavior({{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
-                               {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
-                               {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
-                               {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0}});
+    robot.setCollisionBehavior(
+        {{max_t, max_t, max_t, max_t, max_t, max_t, max_t}}, {{max_t, max_t, max_t, max_t, max_t, max_t, max_t}},
+        {{max_f, max_f, max_f, max_f, max_f, max_f}}, {{max_f, max_f, max_f, max_f, max_f, max_f}});
 
     // define callback for the torque control loop
     std::function<franka::Torques(const franka::RobotState&, franka::Duration)>

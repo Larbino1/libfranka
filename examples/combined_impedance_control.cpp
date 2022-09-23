@@ -72,10 +72,13 @@ int main(int argc, char** argv) {
     port.u2 = u2;
     port.offset = rcm_offset;
 
+    const double max_f{30.0};
+    const double max_t{30.0};
+
     // set collision behavior
     robot.setCollisionBehavior(
-        {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}}, {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
-        {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0}}, {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0}});
+        {{max_t, max_t, max_t, max_t, max_t, max_t, max_t}}, {{max_t, max_t, max_t, max_t, max_t, max_t, max_t}},
+        {{max_f, max_f, max_f, max_f, max_f, max_f}}, {{max_f, max_f, max_f, max_f, max_f, max_f}});
 
     with_controller([&](SDL_Joystick* controller) {
       // Define input functions

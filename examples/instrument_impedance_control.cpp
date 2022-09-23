@@ -59,10 +59,13 @@ int main(int argc, char** argv) {
     ee.offset = ee_offset;
     ee.ref = ref.pos;
 
+    const double max_f{50.0};
+    const double max_t{30.0};
+
     // set collision behavior
     robot.setCollisionBehavior(
-        {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}}, {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
-        {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0}}, {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0}});
+        {{max_t, max_t, max_t, max_t, max_t, max_t, max_t}}, {{max_t, max_t, max_t, max_t, max_t, max_t, max_t}},
+        {{max_f, max_f, max_f, max_f, max_f, max_f}}, {{max_f, max_f, max_f, max_f, max_f, max_f}});
 
     with_controller([&](SDL_Joystick* controller) {
       // Define input functions
