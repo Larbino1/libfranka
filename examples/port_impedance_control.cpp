@@ -24,8 +24,6 @@ int main(int argc, char** argv) {
   // Geometric parameters
   const auto frame = franka::Frame::kEndEffector;
   const Eigen::Vector3d ee_offset({0.377, 0.0, 0.042});
-  //const Eigen::Vector3d u1{0.0, 1.0, 0.0};
-  //const Eigen::Vector3d u2{0.0, 0.0, 1.0};
 
   // ee (for debug)
   WorldCoord ee;
@@ -38,6 +36,7 @@ int main(int argc, char** argv) {
   slider_A.setIdentity();
   slider_A.block<3,3>(0,0) = Eigen::Quaternion<double>(pitchangle).matrix();
   slider_A.block<3,1>(0,3) = ee_offset;
+  std::cout << slider_A << std::endl;
   VirtualPrismaticJoint slider(frame, Eigen::Affine3d(slider_A), 0.5, 0.0);
 
   // Compliance parameters
@@ -55,19 +54,11 @@ int main(int argc, char** argv) {
     // load the kinematics and dynamics model
     franka::Model model = robot.loadModel();
     franka::RobotState initial_state = robot.readOnce();
-    //std::cout << model.zeroJacobian(frame, initial_state).data() << std::endl;
-
-    // // equilibrium point is the initial position
-    // Eigen::Affine3d initial_transform(Eigen::Matrix4d::Map(initial_state.O_T_EE.data()));
     ImpedanceCoordArgs initial_iargs(initial_state, model, frame);
-    Eigen::Vector3d rcm(slider.computeCoord(initial_iargs).z);
 
-    // PortCoord port;
-    // port.rcm = rcm;
-    // port.u1 = u1;
-    // port.u2 = u2;
-    // port.offset = rcm_offset;
-    
+    Eigen::Vector3d rcm(slider.computeCoord(initial_iargs).z);
+    std::cout << rcm << std::endl;
+
     // DEBUG
     auto initial_port_coord_ext = slider.computeCoord(initial_iargs);
     auto ee_coord = computeWorldCoord(initial_iargs, ee);
@@ -87,10 +78,9 @@ int main(int argc, char** argv) {
                                          franka::Duration duration) -> franka::Torques {
       // get state variables
       ImpedanceCoordArgs iargs(robot_state, model, frame);
-      // Eigen::Map<const Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
 
       auto port_coord_ext = slider.computeCoord(iargs);
-      //std::cout << "z=\n" << port_coord_ext.z << "\n";
+      // std::cout << "z=\n" << port_coord_ext.z << "\n";
       port_coord_ext.z = port_coord_ext.z - rcm;
 
       ImpedanceCoordResult<3, 7> port_coord;
@@ -100,30 +90,29 @@ int main(int argc, char** argv) {
 
       ImpedanceCoordResult<3, 1> slider_coord;
       slider_coord.z = port_coord_ext.z;
-      slider_coord.dz = -port_coord_ext.dz;
+      slider_coord.dz = port_coord_ext.dz;
       slider_coord.J = port_coord_ext.J.rightCols(1);
 
-      std::cout << "err=\n" << slider_coord.J.transpose() * slider_coord.z << "\n";
+      //std::cout << "err=\n" << slider_coord.J.transpose() * slider_coord.z << "\n";
       // Check error not too large
-      //if (port_coord.z.norm() > 0.05) {
-       // throw std::runtime_error("Aborting; too far away from starting pose!");
-      //}
-
+      if (port_coord.z.norm() > 0.05) {
+        throw std::runtime_error("Aborting; too far away from starting pose!");
+      }
 
       // debug
       //auto ee_coord = computeWorldCoord(iargs, ee);
       //std::cout << "slider_J (axis)=\n" << slider_coord.J << "\n";
       //std::cout << "ee_pos=\n" << ee_coord.z << "\n";
-      std::cout << "q=" << slider.q << std::endl;
+      //std::cout << "q=" << slider.q << std::endl;
 
       // Update extension
-      std::cout << "F=" << -slider_impedance.F(slider_coord)(0, 0) << std::endl;
-      slider.update(-slider_impedance.F(slider_coord)(0, 0), duration.toSec());
+      //std::cout << "F=" << -slider_impedance.F(slider_coord)(0, 0) << std::endl;
+      slider.update(slider_impedance.F(slider_coord)(0, 0), duration.toSec());
 
       // compute control
       Eigen::VectorXd tau_d(7);
       tau_d << port_impedance.F(port_coord);
-      tau_d.setZero();
+      // tau_d.setZero();
 
       // convert to double array
       std::array<double, 7> tau_d_array{};

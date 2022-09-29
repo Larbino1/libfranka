@@ -91,17 +91,19 @@ class VirtualPrismaticJoint {
     q += qdot * dt;
     qdot += qdd * dt;
   }
+
   ImpedanceCoordResult<3, 8> computeCoord(ImpedanceCoordArgs iargs) {
     // Get prismatic joint axis in world frame
-    Eigen::Affine3d T = iargs.transform * A;
-    Eigen::Vector3d axis = T.linear() * Eigen::Vector3d({0.0, 0.0, 1.0});
+    Eigen::Affine3d T = iargs.transform * A;  // slider -> world frame
+    Eigen::Vector3d axis = T.linear() * Eigen::Vector3d({0.0, 0.0, 1.0});  // slider z-axis in world frame
 
     // Get slider position in world frame
-    Eigen::Vector3d offset = A*(q * axis); //position of slider in ee_frame
-    Eigen::Vector3d z(iargs.transform * A * (q * axis)); // position of slider in world frame
+    Eigen::Vector3d o_s ( q * Eigen::Vector3d({0.0, 0.0, 1.0}) ); // slider pos in slider frame
+    Eigen::Vector3d o_ee( A * o_s ); // slider pos in end-effector frame
+    Eigen::Vector3d z   ( T * o_s ); // slider pos in world-frame
 
     // Get offset jacobian for slider position
-    Eigen::Matrix<double, 3, 7> offset_Jv = offset_jacobian(iargs.transform, iargs.J, offset);
+    Eigen::Matrix<double, 3, 7> offset_Jv = offset_jacobian(iargs.transform, iargs.J, o_ee);
     Eigen::Vector3d dz0(offset_Jv * iargs.dq + qdot * axis);
 
     // Add col 
@@ -121,8 +123,8 @@ class VirtualPrismaticJoint {
     //std::cout << "T=\n" << T.matrix() << "\n";
     //std::cout << "J=\n" << J << "\n";
     //std::cout << "dq_ext=\n" << dq_ext << "\n";
-    std::cout << "dz0=\n" << dz0 << "\n";
-    std::cout << "dz=\n" << dz << "\n";
+    //std::cout << "dz0=\n" << dz0 << "\n";
+    //std::cout << "dz=\n" << dz << "\n";
 
     // Return output
     ImpedanceCoordResult<3, 8> slider_coord;
