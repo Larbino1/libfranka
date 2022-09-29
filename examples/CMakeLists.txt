@@ -25,6 +25,7 @@ target_link_libraries(examples_common PUBLIC JoyInputLib)
 set(EXAMPLES
   cartesian_impedance_control
   port_impedance_control
+  geometric_port_impedance_control
   instrument_impedance_control
   combined_impedance_control
   communication_test
