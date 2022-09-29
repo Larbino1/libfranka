@@ -62,6 +62,62 @@ class DiagonalSpringDamper {
   }
 };
 
+template <int N_breaks, int NDOF>
+class PiecewiseSpring {
+ public:
+  Eigen::Array<double, N_breaks, 1> breakpoints;
+  Eigen::Array<double, N_breaks, 1> ys;
+  double left_outer_stiffness;
+  double right_outer_stiffness;
+  Eigen::Matrix<double, NDOF, 1> F(ImpedanceCoordResult<1, NDOF> coord) {
+    double z(coord.z(0,0));
+    double F;
+    if (z <= breakpoints(0)){
+      std::cout << "los";
+      F = ys(0) + left_outer_stiffness * (z - breakpoints(0));
+    }
+    else if (z >= breakpoints(N_breaks-1)) {
+      std::cout << "ros";
+      F = ys(N_breaks-1) + right_outer_stiffness * (z - breakpoints(N_breaks-1));
+    }
+    else {
+      int i = 0;
+      for (; i < N_breaks-1; i++) {
+        if (z >= breakpoints(i) && z <= breakpoints(i+1)) {
+          break;
+	}
+      }
+      F = ys(i) + (ys(i+1) - ys(i)) * (z - breakpoints(i)) / (breakpoints(i+1) - breakpoints(i));
+    }
+    return coord.J.transpose() * Eigen::Matrix<double, 1, 1>(F);
+  }
+
+  PiecewiseSpring(Eigen::Array<double, N_breaks, 1> breaks, Eigen::Array<double, N_breaks, 1> forces, double los, double ros) 
+    : breakpoints(breaks)
+    , ys(forces)
+    , left_outer_stiffness(los)
+    , right_outer_stiffness(ros)
+  {}
+
+  PiecewiseSpring(Eigen::Array<double, N_breaks, 1> breaks, Eigen::Array<double, N_breaks+1, 1> stiffnesses, double F0) {
+    double y = 0;
+    double c;
+
+    left_outer_stiffness = stiffnesses(0);
+
+    for (int i = 0; i < N_breaks; i++) {	    
+      breakpoints(i) = breaks(i);
+      ys(i) = y;
+      if (breaks(i) < 0 && breaks(i+1) > 0) {
+        c = ys(i) + stiffnesses(i+1) * (0 - breaks(i));
+      }
+      y += stiffnesses(i+1) * (breaks(i+1) - breaks(i));
+    }
+    right_outer_stiffness = stiffnesses(N_breaks+1);
+    ys += F0 - c;
+  }
+};
+
 ImpedanceCoordResult<2, 7> computePortCoord(ImpedanceCoordArgs iargs, PortCoord port);
 ImpedanceCoordResult<3, 7> computeWorldCoord(ImpedanceCoordArgs iargs, WorldCoord world);
 

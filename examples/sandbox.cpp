@@ -27,6 +27,28 @@ int main(int argc, char** argv) {
     return -1;
   }
 
+  PiecewiseSpring<2, 1> spring({0.0, 1.0}, {0.0, 1.0}, 2.0, 2.0);
+
+  ImpedanceCoordResult<1, 1> ir;
+  ir.z(0) = 0.0;
+  ir.dz(0) = 0.0;
+  ir.J(0,0) = 1.0;
+
+  ir.z(0) = -1;
+  std::cout << ir.z << " -> " << spring.F(ir) << std::endl;
+
+  ir.z(0) = 0.0;
+  std::cout << ir.z << " -> " << spring.F(ir) << std::endl;
+
+  ir.z(0) = .5;
+  std::cout << ir.z << " -> " << spring.F(ir) << std::endl;
+
+  ir.z(0) = 1.0;
+  std::cout << ir.z << " -> " << spring.F(ir) << std::endl;
+
+  ir.z(0) = 2.0;
+  std::cout << ir.z << " -> " << spring.F(ir) << std::endl;
+  /*
   // Geometric parameters
   const Eigen::Vector3d ee_offset({0.377, 0.0, 0.042});
   const auto frame = franka::Frame::kEndEffector;
@@ -39,7 +61,10 @@ int main(int argc, char** argv) {
   damping.setZero();
   damping.topLeftCorner(3, 3) << 2.0 * sqrt(translational_stiffness) *
                                      Eigen::MatrixXd::Identity(3, 3);
+  */
 
+
+  /*
   try {
     // connect to robot
     franka::Robot robot(argv[1]);
@@ -77,6 +102,6 @@ int main(int argc, char** argv) {
     // print exception
     std::cout << ex.what() << std::endl;
   }
-  
+  */
   return 0;
 }
