@@ -14,6 +14,26 @@
 
 #include "examples_common.h"
 
+template <int N1, int N2, int Dim>
+struct SplitCoord {
+  ImpedanceCoordResult<Dim, N1> coord1;
+  ImpedanceCoordResult<Dim, N2> coord2;
+};
+
+
+SplitCoord<7, 1, 3> DeMux(ImpedanceCoordResult<3, 8> coord_in) {
+  SplitCoord<7, 1, 3> ret;
+	
+  ret.coord1.z = coord_in.z;
+  ret.coord1.dz = coord_in.dz;
+  ret.coord1.J = coord_in.J.leftCols(7);
+
+  ret.coord2.z = coord_in.z;
+  ret.coord2.dz = coord_in.dz;
+  ret.coord2.J = coord_in.J.rightCols(1);
+  return ret;
+}
+
 int main(int argc, char** argv) {
   // Check whether the required arguments were passed
   if (argc != 2) {
@@ -38,15 +58,19 @@ int main(int argc, char** argv) {
   slider_A.block<3,1>(0,3) = ee_offset;
   std::cout << slider_A << std::endl;
   VirtualPrismaticJoint slider(frame, Eigen::Affine3d(slider_A), 0.5, 0.0);
+  
+  ImpedanceCoordResult<1, 1> slider_extension;
+  slider_extension.J(0, 0) = 1;
 
   // Compliance parameters
   const double stiffness{500.0};
   const double damping{20.0};
   DiagonalSpringDamper<3,7> port_impedance{Eigen::Array3d::Constant(stiffness),
                                            Eigen::Array3d::Constant(damping)};
-                                           // TODO shouldnt need separate impedances for port and slider
   DiagonalSpringDamper<3,1> slider_impedance{Eigen::Array3d::Constant(stiffness),
                                               Eigen::Array3d::Constant(damping)};
+  PiecewiseSpring<2, 1> piecewise({-0.327, 0.0}, {0.0, 0.0}, 300., 300.);
+
   try {
     // connect to robot
     franka::Robot robot(argv[1]);
@@ -57,14 +81,10 @@ int main(int argc, char** argv) {
     ImpedanceCoordArgs initial_iargs(initial_state, model, frame);
 
     Eigen::Vector3d rcm(slider.computeCoord(initial_iargs).z);
-    std::cout << rcm << std::endl;
 
     // DEBUG
     auto initial_port_coord_ext = slider.computeCoord(initial_iargs);
     auto ee_coord = computeWorldCoord(initial_iargs, ee);
-    //std::cout << "q=" << slider.q << "\n";
-    //std::cout << "slider_pos=\n" << initial_port_coord_ext.z << "\n";
-    //std::cout << "ee_pos=\n" << ee_coord.z << "\n";
 
     // set collision behavior
     robot.setCollisionBehavior({{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
@@ -80,34 +100,21 @@ int main(int argc, char** argv) {
       ImpedanceCoordArgs iargs(robot_state, model, frame);
 
       auto port_coord_ext = slider.computeCoord(iargs);
-      // std::cout << "z=\n" << port_coord_ext.z << "\n";
       port_coord_ext.z = port_coord_ext.z - rcm;
+      auto split_coords = DeMux(port_coord_ext);
+      auto port_coord = split_coords.coord1;
+      auto slider_coord = split_coords.coord2;
 
-      ImpedanceCoordResult<3, 7> port_coord;
-      port_coord.z = port_coord_ext.z;
-      port_coord.dz = port_coord_ext.dz;
-      port_coord.J = port_coord_ext.J.leftCols(7);
-
-      ImpedanceCoordResult<3, 1> slider_coord;
-      slider_coord.z = port_coord_ext.z;
-      slider_coord.dz = port_coord_ext.dz;
-      slider_coord.J = port_coord_ext.J.rightCols(1);
-
-      //std::cout << "err=\n" << slider_coord.J.transpose() * slider_coord.z << "\n";
-      // Check error not too large
+           // Check error not too large
       if (port_coord.z.norm() > 0.05) {
         throw std::runtime_error("Aborting; too far away from starting pose!");
       }
 
-      // debug
-      //auto ee_coord = computeWorldCoord(iargs, ee);
-      //std::cout << "slider_J (axis)=\n" << slider_coord.J << "\n";
-      //std::cout << "ee_pos=\n" << ee_coord.z << "\n";
-      //std::cout << "q=" << slider.q << std::endl;
-
       // Update extension
-      //std::cout << "F=" << -slider_impedance.F(slider_coord)(0, 0) << std::endl;
-      slider.update(slider_impedance.F(slider_coord)(0, 0), duration.toSec());
+      slider_extension.z(0) = slider.q;
+      slider_extension.dz(0) = slider.qdot;
+      Eigen::Matrix<double, 1, 1> slider_F = slider_impedance.F(slider_coord) + piecewise.F(slider_extension); 
+      slider.update(slider_F(0, 0), duration.toSec());
 
       // compute control
       Eigen::VectorXd tau_d(7);

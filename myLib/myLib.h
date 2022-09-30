@@ -40,12 +40,12 @@ struct ImpedanceCoordResult {
 class ImpedanceCoordArgs {
   public:
     Eigen::Affine3d transform;
+    Eigen::Matrix<double, 7, 1> q;  // joint angles
     Eigen::Matrix<double, 7, 1> dq;  // joint velocities
     Eigen::Matrix<double, 6, 7> J;   // geometric_jacobian
-    //Eigen::Map<const Eigen::Matrix<double, 7, 1>> dq;  // joint velocities
-    //Eigen::Map<const Eigen::Matrix<double, 6, 7>> J;   // geometric_jacobian
     ImpedanceCoordArgs(franka::RobotState robot_state, franka::Model& model, franka::Frame frame)
       : transform(Eigen::Matrix4d::Map(robot_state.O_T_EE.data()))
+      , q(robot_state.q.data())
       , dq(robot_state.dq.data())
       , J(model.zeroJacobian(frame, robot_state).data()) 
       {}
@@ -73,11 +73,9 @@ class PiecewiseSpring {
     double z(coord.z(0,0));
     double F;
     if (z <= breakpoints(0)){
-      std::cout << "los";
       F = ys(0) + left_outer_stiffness * (z - breakpoints(0));
     }
     else if (z >= breakpoints(N_breaks-1)) {
-      std::cout << "ros";
       F = ys(N_breaks-1) + right_outer_stiffness * (z - breakpoints(N_breaks-1));
     }
     else {
@@ -89,7 +87,7 @@ class PiecewiseSpring {
       }
       F = ys(i) + (ys(i+1) - ys(i)) * (z - breakpoints(i)) / (breakpoints(i+1) - breakpoints(i));
     }
-    return coord.J.transpose() * Eigen::Matrix<double, 1, 1>(F);
+    return -coord.J.transpose() * Eigen::Matrix<double, 1, 1>(F);
   }
 
   PiecewiseSpring(Eigen::Array<double, N_breaks, 1> breaks, Eigen::Array<double, N_breaks, 1> forces, double los, double ros) 
@@ -172,15 +170,6 @@ class VirtualPrismaticJoint {
     dq_ext.topRows(7) << iargs.dq;
     dq_ext.bottomRows(1) << qdot;
     Eigen::Matrix<double, 3, 1> dz(J * dq_ext);
-
-    //std::cout << "J_geo=\n" << iargs.J << "\n";
-    //std::cout << "J_o=\n" << offset_Jv << "\n";
-    //std::cout << "axis=\n" << axis << "\n";
-    //std::cout << "T=\n" << T.matrix() << "\n";
-    //std::cout << "J=\n" << J << "\n";
-    //std::cout << "dq_ext=\n" << dq_ext << "\n";
-    //std::cout << "dz0=\n" << dz0 << "\n";
-    //std::cout << "dz=\n" << dz << "\n";
 
     // Return output
     ImpedanceCoordResult<3, 8> slider_coord;
