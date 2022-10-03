@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string>
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -180,3 +181,6 @@ class VirtualPrismaticJoint {
     return slider_coord;
   }
 };
+
+void myLog(const char identifier[8], std::string msg);
+

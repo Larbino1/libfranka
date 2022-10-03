@@ -98,3 +98,7 @@ Eigen::Vector3d register_point_prompt(franka::Robot& robot, Eigen::Vector3d offs
   }
   return pos;
 }
+
+void myLog(const char identifier[8], std::string msg) {
+  std::cout << "log:"<< identifier << ":" << msg << "\n";
+}
