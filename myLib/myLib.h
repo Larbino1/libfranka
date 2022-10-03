@@ -117,6 +117,7 @@ class PiecewiseSpring {
 };
 
 ImpedanceCoordResult<2, 7> computePortCoord(ImpedanceCoordArgs iargs, PortCoord port);
+ImpedanceCoordResult<7, 7> computeJointCoord(ImpedanceCoordArgs iargs);
 ImpedanceCoordResult<3, 7> computeWorldCoord(ImpedanceCoordArgs iargs, WorldCoord world);
 
 Eigen::Vector3d register_point(franka::Robot& robot, Eigen::Vector3d offset);

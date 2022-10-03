@@ -10,7 +10,7 @@
 #include "joyInput.h"
 
 const double VMAX = 0.01;  // In m/s
-const double DEADZONE = 0.02;
+const double DEADZONE = 0.05;
 
 double deadzone(double val) {
   if (abs(val) < DEADZONE) {

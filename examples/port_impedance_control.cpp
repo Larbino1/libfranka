@@ -63,13 +63,13 @@ int main(int argc, char** argv) {
   slider_extension.J(0, 0) = 1;
 
   // Compliance parameters
-  const double stiffness{500.0};
+  const double stiffness{2000.0};
   const double damping{20.0};
   DiagonalSpringDamper<3,7> port_impedance{Eigen::Array3d::Constant(stiffness),
                                            Eigen::Array3d::Constant(damping)};
   DiagonalSpringDamper<3,1> slider_impedance{Eigen::Array3d::Constant(stiffness),
                                               Eigen::Array3d::Constant(damping)};
-  PiecewiseSpring<2, 1> piecewise({-0.327, 0.0}, {0.0, 0.0}, 300., 300.);
+  PiecewiseSpring<2, 1> piecewise({-0.280, 0.0}, {0.0, 0.0}, 300., 300.);
 
   try {
     // connect to robot
@@ -87,10 +87,11 @@ int main(int argc, char** argv) {
     auto ee_coord = computeWorldCoord(initial_iargs, ee);
 
     // set collision behavior
-    robot.setCollisionBehavior({{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
-                               {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
-                               {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
-                               {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0}});
+    const double max_f{50.0};
+    const double max_t{30.0};
+    robot.setCollisionBehavior(
+        {{max_t, max_t, max_t, max_t, max_t, max_t, max_t}}, {{max_t, max_t, max_t, max_t, max_t, max_t, max_t}},
+        {{max_f, max_f, max_f, max_f, max_f, max_f}}, {{max_f, max_f, max_f, max_f, max_f, max_f}});
 
     // define callback for the torque control loop
     std::function<franka::Torques(const franka::RobotState&, franka::Duration)>

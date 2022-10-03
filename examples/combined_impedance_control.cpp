@@ -35,14 +35,18 @@ int main(int argc, char** argv) {
   const Eigen::Vector3d u2{0.0, 0.0, 1.0};
 
   // Compliance parameters
-  const double ee_stiffness{800.0};
+  const double ee_stiffness{1100.0};
   const double port_stiffness{2200.0};
-  const double ee_damping{30.0};
-  const double port_damping{10.0};
+  const double ee_damping{12.0};
+  const double port_damping{16.0};
+  const double joint_stiffness{0.0};
+  const double joint_damping{0.2};
   DiagonalSpringDamper<3,7> ee_impedance{Eigen::Array3d::Constant(ee_stiffness),
                                          Eigen::Array3d::Constant(ee_damping)};
   DiagonalSpringDamper<2,7> port_impedance{Eigen::Array2d::Constant(port_stiffness),
                                            Eigen::Array2d::Constant(port_damping)};
+  DiagonalSpringDamper<7,7> joint_impedance{Eigen::Array<double,7,1>::Constant(joint_stiffness),
+                                            Eigen::Array<double,7,1>::Constant(joint_damping)};
 
   try {
     // connect to robot
@@ -68,10 +72,13 @@ int main(int argc, char** argv) {
     port.u2 = u2;
     port.offset = rcm_offset;
 
+    const double max_f{30.0};
+    const double max_t{30.0};
+
     // set collision behavior
     robot.setCollisionBehavior(
-        {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}}, {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
-        {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0}}, {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0}});
+        {{max_t, max_t, max_t, max_t, max_t, max_t, max_t}}, {{max_t, max_t, max_t, max_t, max_t, max_t, max_t}},
+        {{max_f, max_f, max_f, max_f, max_f, max_f}}, {{max_f, max_f, max_f, max_f, max_f, max_f}});
 
     with_controller([&](SDL_Joystick* controller) {
       // Define input functions
@@ -97,6 +104,7 @@ int main(int argc, char** argv) {
         // compute control coordinate error and jacobian
         auto ee_coord = computeWorldCoord(iargs, ee);
         auto port_coord = computePortCoord(iargs, port);
+	auto joint_coord = computeJointCoord(iargs);
 
         // Check error not too large
         if (ee_coord.z.norm() > 0.05 || port_coord.z.norm() > 0.05) {
@@ -105,7 +113,8 @@ int main(int argc, char** argv) {
 
         // compute control
         Eigen::VectorXd tau_d(7);
-        tau_d << ee_impedance.F(ee_coord) + port_impedance.F(port_coord);
+        tau_d << ee_impedance.F(ee_coord) + port_impedance.F(port_coord)
+                    + joint_impedance.F(joint_coord); 
 
         // convert to double array
         std::array<double, 7> tau_d_array{};
