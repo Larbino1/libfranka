@@ -2,6 +2,7 @@
 #include <cmath>
 #include <functional>
 #include <iostream>
+#include <string>
 
 #include <Eigen/Dense>
 
@@ -32,6 +33,10 @@ SplitCoord<7, 1, 3> DeMux(ImpedanceCoordResult<3, 8> coord_in) {
   ret.coord2.dz = coord_in.dz;
   ret.coord2.J = coord_in.J.rightCols(1);
   return ret;
+}
+
+void myLog(const char identifier[8], string msg) {
+  std::cout << "log:" << identifier << ":" << "msg" << "\n";
 }
 
 int main(int argc, char** argv) {
@@ -106,10 +111,22 @@ int main(int argc, char** argv) {
       auto port_coord = split_coords.coord1;
       auto slider_coord = split_coords.coord2;
 
-           // Check error not too large
+      // Check error not too large
       if (port_coord.z.norm() > 0.05) {
         throw std::runtime_error("Aborting; too far away from starting pose!");
       }
+
+      // Log
+      auto tau_J = robot_state.tau_J.data();
+      auto tau_J_d = robot_state.tau_J_d.data()
+      string tau_J_msg("");
+      string tau_J_d_msg("");
+      for (int i = 0; i < 7; i ++) {
+        tau_J_msg = tau_J_msg + tau_J[i].to_string() + ", ";
+        tau_J_d_msg = tau_J_d_msg + tau_J_d[i].to_string() + ", ";
+      }
+      myLog("tau_J___", tau_J_msg);
+      myLog("tau_J_d_", tau_J_d_msg);
 
       // Update extension
       slider_extension.z(0) = slider.q;

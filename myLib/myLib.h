@@ -44,7 +44,7 @@ class ImpedanceCoordArgs {
     Eigen::Matrix<double, 7, 1> dq;  // joint velocities
     Eigen::Matrix<double, 6, 7> J;   // geometric_jacobian
     ImpedanceCoordArgs(franka::RobotState robot_state, franka::Model& model, franka::Frame frame)
-      : transform(Eigen::Matrix4d::Map(robot_state.O_T_EE.data()))
+      : transform(Eigen::Matrix4d::Map(robot_state.O_T_EE.data())) //TODO should this be a map??
       , q(robot_state.q.data())
       , dq(robot_state.dq.data())
       , J(model.zeroJacobian(frame, robot_state).data()) 
