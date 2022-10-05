@@ -184,3 +184,4 @@ class VirtualPrismaticJoint {
 
 void myLog(const char identifier[8], std::string msg);
 
+void logTorques(franka::Model& model, franka::RobotState robot_state);

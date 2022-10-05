@@ -73,6 +73,9 @@ int main(int argc, char** argv) {
         throw std::runtime_error("Aborting; too far away from starting pose!");
       }
 
+      // Log
+      logTorques(model, robot_state);
+
       // compute control
       Eigen::VectorXd tau_d(7);
       tau_d << port_impedance.F(port_coord);

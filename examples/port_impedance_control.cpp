@@ -113,16 +113,7 @@ int main(int argc, char** argv) {
       }
 
       // Log
-      auto tau_J = robot_state.tau_J.data();
-      auto tau_J_d = robot_state.tau_J_d.data();
-      std::string tau_J_msg("");
-      std::string tau_J_d_msg("");
-      for (int i = 0; i < 7; i ++) {
-        tau_J_msg = tau_J_msg + std::to_string(tau_J[i]) + ", ";
-        tau_J_d_msg = tau_J_d_msg + std::to_string(tau_J_d[i]) + ", ";
-      }
-      myLog("tau_J___", tau_J_msg);
-      myLog("tau_J_d_", tau_J_d_msg);
+      logTorques(model, robot_state); 
 
       // Update extension
       slider_extension.z(0) = slider.q;

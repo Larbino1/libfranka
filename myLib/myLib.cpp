@@ -102,3 +102,20 @@ Eigen::Vector3d register_point_prompt(franka::Robot& robot, Eigen::Vector3d offs
 void myLog(const char identifier[8], std::string msg) {
   std::cout << "log:"<< identifier << ":" << msg << "\n";
 }
+
+void logTorques(franka::Model& model, franka::RobotState robot_state) {
+  auto tau_J = robot_state.tau_J.data();
+  auto tau_J_d = robot_state.tau_J_d.data();
+  auto gravity = model.gravity(robot_state);
+  std::string tau_J_msg("");
+  std::string tau_J_d_msg("");
+  std::string gravity_msg("");
+  for (int i = 0; i < 7; i ++) {
+    tau_J_msg = tau_J_msg + std::to_string(tau_J[i]) + ", ";
+    tau_J_d_msg = tau_J_d_msg + std::to_string(tau_J_d[i]) + ", ";
+    gravity_msg = gravity_msg + std::to_string(gravity[i]) + ", ";
+  }
+  myLog("tau_J___", tau_J_msg);
+  myLog("tau_J_d_", tau_J_d_msg);
+  myLog("gravity_", gravity_msg);
+}
