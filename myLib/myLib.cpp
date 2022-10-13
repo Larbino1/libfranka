@@ -119,3 +119,4 @@ void logTorques(franka::Model& model, franka::RobotState robot_state) {
   myLog("tau_J_d_", tau_J_d_msg);
   myLog("gravity_", gravity_msg);
 }
+

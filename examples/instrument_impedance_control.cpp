@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
                 << "After starting try to push the robot and see how it reacts." << std::endl
                 << "Press Enter to continue..." << std::endl;
       std::cin.ignore();
-      robot.control(impedance_control_callback);
+      robot.control(impedance_control_callback, true, 1000);
     });
   } catch (const franka::Exception& ex) {
     // print exception

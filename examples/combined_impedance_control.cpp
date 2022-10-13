@@ -129,7 +129,7 @@ int main(int argc, char** argv) {
                 << "Press Enter to continue..." << std::endl;
       std::cin.ignore();
       ref.pos = register_point(robot, ee_offset);
-      robot.control(impedance_control_callback);
+      robot.control(impedance_control_callback, true, 1000);
     });
   } catch (const franka::Exception& ex) {
     // print exception
