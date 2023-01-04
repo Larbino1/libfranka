@@ -120,3 +120,15 @@ void logTorques(franka::Model& model, franka::RobotState robot_state) {
   myLog("gravity_", gravity_msg);
 }
 
+void logState(franka::RobotState robot_state) {
+  auto q = robot_state.q.data();
+  auto dq = robot_state.dq.data();
+  std::string q_msg("");
+  std::string dq_msg("");
+  for (int i = 0; i < 7; i ++) {
+    q_msg = q_msg + std::to_string(q[i]) + ", ";
+    dq_msg = dq_msg + std::to_string(dq[i]) + ", ";
+  }
+  myLog("q_______", q_msg);
+  myLog("dq______", dq_msg);
+}

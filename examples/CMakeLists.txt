@@ -38,6 +38,7 @@ set(EXAMPLES
   generate_joint_position_motion
   generate_joint_velocity_motion
   grasp_object
+  joint_identification
   joint_impedance_control
   joint_point_to_point_motion
   motion_with_control

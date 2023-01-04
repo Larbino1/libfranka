@@ -90,7 +90,7 @@ int main(int argc, char** argv) {
 
         // compute control coordinate error and jacobian
         auto ee_coord = computeWorldCoord(iargs, ee);
-	auto joint_coord = computeJointCoord(iargs);
+	      auto joint_coord = computeJointCoord(iargs);
         // Check error not too large
         if (ee_coord.z.norm() > 0.05) {
           throw std::runtime_error("Aborting; too far away from starting pose!");

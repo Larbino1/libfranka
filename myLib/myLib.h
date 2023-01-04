@@ -185,6 +185,8 @@ class VirtualPrismaticJoint {
 void myLog(const char identifier[8], std::string msg);
 
 void logTorques(franka::Model& model, franka::RobotState robot_state);
+void logState(franka::RobotState robot_state);
+
 
 template <int Dim>
 void logPortError(ImpedanceCoordResult<Dim, 7> portCoord) {
