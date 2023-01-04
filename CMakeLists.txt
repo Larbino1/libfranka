@@ -48,6 +48,7 @@ endif()
 add_subdirectory(common)
 add_subdirectory(myLib)
 add_subdirectory(joyInput)
+add_subdirectory(json)
 
 ## Library
 add_library(franka SHARED
