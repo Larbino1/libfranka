@@ -58,9 +58,13 @@ class DiagonalSpringDamper {
  public:
   Eigen::Array<double, Dim, 1> stiffness;
   Eigen::Array<double, Dim, 1> damping;
-  Eigen::Matrix<double, NDOF, 1> F(ImpedanceCoordResult<Dim, NDOF> coord) {
-      return coord.J.transpose() * (-stiffness * coord.z.array() - damping * coord.dz.array()).matrix();
-  }
+  Eigen::Matrix<double, Dim, 1> F(ImpedanceCoordResult<Dim, NDOF> coord) {
+      Eigen::Matrix<double, Dim, 1> F = (-stiffness * coord.z.array() - damping * coord.dz.array());
+      return F;
+  };
+  Eigen::Matrix<double, NDOF, 1> tau(ImpedanceCoordResult<Dim, NDOF> coord) {
+      return coord.J.transpose() * F(coord).matrix();
+  };
 };
 
 template <int N_breaks, int NDOF>

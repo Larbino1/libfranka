@@ -113,8 +113,8 @@ int main(int argc, char** argv) {
 
         // compute control
         Eigen::VectorXd tau_d(7);
-        tau_d << ee_impedance.F(ee_coord) + port_impedance.F(port_coord)
-                    + joint_impedance.F(joint_coord); 
+        tau_d << ee_impedance.tau(ee_coord) + port_impedance.tau(port_coord)
+                    + joint_impedance.tau(joint_coord); 
 
         // convert to double array
         std::array<double, 7> tau_d_array{};

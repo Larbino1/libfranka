@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
 
       // compute control
       Eigen::VectorXd tau_d(7);
-      tau_d << port_impedance.F(port_coord);
+      tau_d << port_impedance.tau(port_coord);
 
       // convert to double array
       std::array<double, 7> tau_d_array{};
