@@ -113,6 +113,9 @@ target_link_libraries(franka PRIVATE
   libfranka-common
 )
 
+# To link experimental/filesysystem
+# link_libraries("$<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_LESS:$<CXX_COMPILER_VERSION>,9.0>>:-lstdc++fs>")
+
 ## Installation
 include(GNUInstallDirs)
 set(INSTALL_CMAKE_CONFIG_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/Franka)

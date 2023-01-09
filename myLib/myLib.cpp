@@ -132,3 +132,65 @@ void logState(franka::RobotState robot_state) {
   myLog("q_______", q_msg);
   myLog("dq______", dq_msg);
 }
+
+PointMatchResult matchPointSets(Eigen::MatrixXd pointsA, Eigen::MatrixXd pointsB){
+  PointMatchResult result = {false, Eigen::Matrix3d::Zero(), Eigen::Vector3d::Zero(), 0.0, 0.0};
+  if (pointsA.rows() != 3 || pointsB.rows() != 3) {
+    std::cerr << "pointsA and pointsB must have 3 rows" << std::endl;
+    return result;
+  }
+  if (pointsA.cols() != pointsB.cols()) {
+    std::cerr << "poitnsA and pointsB must have the same number of columns";
+    return result;
+  }
+
+  Eigen::Vector3d comA = pointsA.rowwise().mean(), comB = pointsB.rowwise().mean();
+
+  // std::cout << comA << std::endl;
+  // std::cout << comB << std::endl;
+  Eigen::MatrixXd p_A = pointsA.colwise() - comA, p_B = pointsB.colwise() - comB;
+
+  // std::cout << p_A << std::endl;
+  // std::cout << p_B << std::endl;
+  Eigen::Matrix3d H = p_A * p_B.transpose();
+  // H.fill(0);
+  // for (int i = 0; i < NPoints; i++) {
+  //   H += p_A.col(i) * p_B.col(i).transpose();
+  // }
+  // std::cout << H << std::endl;
+  
+  const int SVDOptions = Eigen::ComputeFullU | Eigen::ComputeFullV;
+  Eigen::JacobiSVD<Eigen::Matrix3d> svd(H, SVDOptions);
+
+  svd.computeU();
+  svd.computeV();
+
+  Eigen::Matrix3d U = svd.matrixU();
+  Eigen::Matrix3d V = svd.matrixV();
+  // std::cout << "Matrix U:" << std::endl << U << std::endl;
+  // std::cout << "Matrix V" << std::endl << V << std::endl;
+
+  Eigen::Matrix3d X = V*U.transpose();
+
+  result.rotation = X;
+  result.translation = comB - X * comA;
+
+  // std::cout << "Rotation:" << std::endl;
+  // std::cout << R << std::endl;
+  // std::cout << "Translation:" << std::endl;
+  // std::cout << t << std::endl;
+
+  if (abs(X.determinant() - 1) > 1e-6) {
+    std::cerr << "Determinant of rotation matrix not equal to 1 (is " <<  X.determinant() << ")... Failed to solve.";
+    return result;
+  }
+
+  auto err = (result.rotation * pointsA).colwise() + result.translation - pointsB;
+  // std::cout << "error" << std::endl << err <<std::endl;
+  auto dists = err.array().pow(2).colwise().sum().sqrt();
+  result.avg_error = dists.mean();
+  result.max_error = dists.maxCoeff();
+  // std::cout << dists << std::endl;
+  // std::cout<< "Average error, max error: " << result.avg_error << ", " << result.max_error << std::endl;
+  return result;
+}

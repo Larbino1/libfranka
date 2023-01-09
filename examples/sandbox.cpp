@@ -1,17 +1,15 @@
 #include <array>
 #include <cmath>
+
 #include <functional>
 #include <future>
 #include <iostream>
-#include <fstream>
 #include <string>
 #include <sstream>
 #include <thread>
 #include <regex>
 
 #include <Eigen/Dense>
-#include <nlohmann/json.hpp>
-using json = nlohmann::json;
 
 #include <franka/duration.h>
 #include <franka/exception.h>
@@ -20,6 +18,7 @@ using json = nlohmann::json;
 
 #include "examples_common.h"
 #include "myLib.h"
+#include "myJson.h"
 
 
 
@@ -27,7 +26,6 @@ int main(int argc, char** argv) {
   // Check whether the required arguments were passed
   if (argc != 2) {
     std::cerr << "Usage: " << argv[0] << " <robot-hostname>" << std::endl;
-    return -1;
   }
  
   /* Piecewise spring example
@@ -53,16 +51,9 @@ int main(int argc, char** argv) {
   ir.z(0) = 2.0;
   std::cout << ir.z << " -> " << spring.F(ir) << std::endl;
   */
-  std::ifstream f("points.json");
-  if (f.peek() == std::ifstream::traits_type::eof()) {
-    std::cerr << "File 'points.json' does not exists or is empty.\n";
-    exit(0);
-  } 
-  else {
-    json data = json::parse(f);
-    std::cout << data;  
-  }
-  
+
+  json points = open_points_json();
+
   /*
   // Geometric parameters
   const Eigen::Vector3d ee_offset({0.377, 0.0, 0.042});

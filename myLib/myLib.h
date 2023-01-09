@@ -186,7 +186,7 @@ class VirtualPrismaticJoint {
   }
 };
 
-void myLog(const char identifier[8], std::string msg);
+void myLog(const char identifier[8], std::string msgxyz);
 
 void logTorques(franka::Model& model, franka::RobotState robot_state);
 void logState(franka::RobotState robot_state);
@@ -201,3 +201,13 @@ void logPortError(ImpedanceCoordResult<Dim, 7> portCoord) {
   }
   myLog("port_err", port_z_msg);
 }
+
+struct PointMatchResult {
+  bool success;
+  Eigen::Matrix3d rotation;
+  Eigen::Vector3d translation;
+  double avg_error;
+  double max_error;
+};
+
+PointMatchResult matchPointSets(Eigen::MatrixXd pointsA, Eigen::MatrixXd pointsB);
