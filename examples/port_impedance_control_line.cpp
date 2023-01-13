@@ -50,6 +50,10 @@ int main(int argc, char** argv) {
                                            Eigen::Array3d::Constant(damping)};
   PiecewiseSpring<2, 1> insertion_buffer({-0.280, 0.0}, {0.0, 0.0}, 300., 300.);
 
+  // Constrain slider in Y direction between 0.1 and -0.1
+  const Eigen::Vector3d Y(0.0, 1.0, 0.0);
+  PiecewiseSpring<2, 1> slot_buffer({-0.1, 0.1}, {0.0, 0.0}, stiffness, stiffness);
+
   try {
     // connect to robot
     franka::Robot robot(argv[1]);
@@ -95,13 +99,13 @@ int main(int argc, char** argv) {
       slider_extension.z(0) = slider.q;
       slider_extension.dz(0) = slider.qdot;
       
-      auto F = impedance.F(port_coord_ext);
-      auto tau = impedance.tau(port_coord_ext);
-      slider.update(tau.tail(1)(0,0), duration.toSec()) + insertion_buffer.F(slider_extension);
+      auto F = impedance.F(port_coord_ext); //+ Y*slot_buffer.F(port_coord_ext.z[1]) ;
+      auto tau = port_coord_ext.J * F;
+      slider.update(tau.tail(1)(0,0), duration.toSec()); // + insertion_buffer.F(slider_extension);
 
       // Check force not too large
       if (F.norm() > 30) {
-        throw std::runtime_error("Aborting; too far away from starting pose!");
+        throw std::runtime_error("Aborting; demanded force too large!");
       }
 
       // compute control
