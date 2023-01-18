@@ -1,3 +1,4 @@
+#include <Eigen/Dense>
 #include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
 #include <fstream>
@@ -6,4 +7,11 @@ namespace fs = std::experimental::filesystem;
 using json = nlohmann::json;
 
 
-json open_points_json();
+struct RegistrationPoints {
+    Eigen::MatrixXd points;
+    std::vector<std::string> names;
+};
+
+json open_json(fs::path filepath);
+RegistrationPoints parse_registration_points(json jsondata);
+Eigen::MatrixXd parse_trajectory(json jsondata);

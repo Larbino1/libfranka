@@ -140,7 +140,7 @@ PointMatchResult matchPointSets(Eigen::MatrixXd pointsA, Eigen::MatrixXd pointsB
     return result;
   }
   if (pointsA.cols() != pointsB.cols()) {
-    std::cerr << "poitnsA and pointsB must have the same number of columns";
+    std::cerr << "pointsA and pointsB must have the same number of columns";
     return result;
   }
 
@@ -190,6 +190,7 @@ PointMatchResult matchPointSets(Eigen::MatrixXd pointsA, Eigen::MatrixXd pointsB
   auto dists = err.array().pow(2).colwise().sum().sqrt();
   result.avg_error = dists.mean();
   result.max_error = dists.maxCoeff();
+  result.success = true;
   // std::cout << dists << std::endl;
   // std::cout<< "Average error, max error: " << result.avg_error << ", " << result.max_error << std::endl;
   return result;
