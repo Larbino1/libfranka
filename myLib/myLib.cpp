@@ -83,15 +83,15 @@ Eigen::Vector3d register_point_prompt(franka::Robot& robot, Eigen::Vector3d offs
   char c;
   while (true) {
     while (true) {
-      std::cout << "Press enter to register position" << std::endl;
+      std::cout << "Press enter to register position";
 
       c = std::getchar();
       if (c == '\n') {
-	pos = register_point(robot, offset);
+	      pos = register_point(robot, offset);
         break;
       }
     }
-    std::cout << "Position registered at:\n" << pos << "\nPress enter to confirm";
+    std::cout << "\rPosition registered. Enter to confirm, or anything else to retry:";
     c = std::getchar();
     if (c == '\n')
       break;
@@ -194,4 +194,15 @@ PointMatchResult matchPointSets(Eigen::MatrixXd pointsA, Eigen::MatrixXd pointsB
   // std::cout << dists << std::endl;
   // std::cout<< "Average error, max error: " << result.avg_error << ", " << result.max_error << std::endl;
   return result;
+}
+
+bool YesNoPrompt(std::string msg){
+  char type;
+  do
+  {
+      std::cout << msg << std::endl;
+      type = std::getchar();
+  }
+  while( !std::cin.fail() && type!='y' && type!='n' );
+  return type == 'y';
 }

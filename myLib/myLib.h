@@ -1,3 +1,5 @@
+#pragma once
+
 #include <iostream>
 #include <string>
 
@@ -211,3 +213,5 @@ struct PointMatchResult {
 };
 
 PointMatchResult matchPointSets(Eigen::MatrixXd pointsA, Eigen::MatrixXd pointsB);
+
+bool YesNoPrompt(std::string msg);
