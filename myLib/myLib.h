@@ -1,3 +1,5 @@
+#pragma once
+
 #include <iostream>
 #include <string>
 
@@ -59,23 +61,22 @@ class DiagonalSpringDamper {
   Eigen::Array<double, Dim, 1> stiffness;
   Eigen::Array<double, Dim, 1> damping;
   Eigen::Matrix<double, Dim, 1> F(ImpedanceCoordResult<Dim, NDOF> coord) {
-      Eigen::Matrix<double, Dim, 1> F = (-stiffness * coord.z.array() - damping * coord.dz.array());
-      return F;
+      Eigen::Matrix<double, Dim, 1> F = (stiffness * coord.z.array() + damping * coord.dz.array());
+      return -F;
   };
   Eigen::Matrix<double, NDOF, 1> tau(ImpedanceCoordResult<Dim, NDOF> coord) {
       return coord.J.transpose() * F(coord).matrix();
   };
 };
 
-template <int N_breaks, int NDOF>
+template <int N_breaks>
 class PiecewiseSpring {
  public:
   Eigen::Array<double, N_breaks, 1> breakpoints;
   Eigen::Array<double, N_breaks, 1> ys;
   double left_outer_stiffness;
   double right_outer_stiffness;
-  Eigen::Matrix<double, NDOF, 1> F(ImpedanceCoordResult<1, NDOF> coord) {
-    double z(coord.z(0,0));
+  double F(double z) {
     double F;
     if (z <= breakpoints(0)){
       F = ys(0) + left_outer_stiffness * (z - breakpoints(0));
@@ -88,11 +89,11 @@ class PiecewiseSpring {
       for (; i < N_breaks-1; i++) {
         if (z >= breakpoints(i) && z <= breakpoints(i+1)) {
           break;
-	}
+	  }
       }
       F = ys(i) + (ys(i+1) - ys(i)) * (z - breakpoints(i)) / (breakpoints(i+1) - breakpoints(i));
     }
-    return -coord.J.transpose() * Eigen::Matrix<double, 1, 1>(F);
+    return -F;
   }
 
   PiecewiseSpring(Eigen::Array<double, N_breaks, 1> breaks, Eigen::Array<double, N_breaks, 1> forces, double los, double ros) 
@@ -127,6 +128,8 @@ ImpedanceCoordResult<3, 7> computeWorldCoord(ImpedanceCoordArgs iargs, WorldCoor
 
 Eigen::Vector3d register_point(franka::Robot& robot, Eigen::Vector3d offset);
 Eigen::Vector3d register_point_prompt(franka::Robot& robot, Eigen::Vector3d offset);
+
+Eigen::Vector3d register_ee_offset(franka::Robot& robot);
 
 class VirtualPrismaticJoint {
  private:
@@ -211,3 +214,8 @@ struct PointMatchResult {
 };
 
 PointMatchResult matchPointSets(Eigen::MatrixXd pointsA, Eigen::MatrixXd pointsB);
+
+bool YesNoPrompt(std::string msg);
+
+
+char myGetChar();

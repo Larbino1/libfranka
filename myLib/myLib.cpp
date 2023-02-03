@@ -81,23 +81,67 @@ Eigen::Vector3d register_point_prompt(franka::Robot& robot, Eigen::Vector3d offs
   franka::RobotState state;
   Eigen::Vector3d pos;
   char c;
-  while (true) {
+  // while (true) {
     while (true) {
-      std::cout << "Press enter to register position" << std::endl;
-
-      c = std::getchar();
+      std::cout << "Press enter to register position";
+      c = myGetChar();
       if (c == '\n') {
-	pos = register_point(robot, offset);
+	      pos = register_point(robot, offset);
         break;
       }
     }
-    std::cout << "Position registered at:\n" << pos << "\nPress enter to confirm";
-    c = std::getchar();
-    if (c == '\n')
-      break;
-  }
+    // std::cout << "\rPosition registered. Enter to confirm, or anything else to retry:";
+    // c = std::getchar();
+    // if (c == '\n')
+    //   break;
+  // }
   return pos;
 }
+
+Eigen::Vector3d register_ee_offset(franka::Robot& robot) {
+  std::vector<Eigen::Vector3d> points = {};
+  std::vector<Eigen::Matrix3d> rotations = {};
+
+  std::cout << "Press enter to capture end-effector position." << std::endl;
+  std::cout << "Capture multiple different end-effector orientations, with the tip in the same position." << std::endl;
+  std::cout << "Enter 's' to stop when done." << std::endl;
+
+  while (true) {
+    char c = myGetChar();
+    if (c == 's') {
+      break;
+    }
+    franka::RobotState state = robot.readOnce();
+    std::cout << "Registered one point.";
+    Eigen::Affine3d transform(Eigen::Map<Eigen::Matrix4d>(state.O_T_EE.data()));
+    points.push_back(transform.translation());
+    rotations.push_back(transform.linear());
+  }
+
+  Eigen::MatrixXd A(3*points.size(), 6);
+  Eigen::MatrixXd b(3*points.size(), 1);
+
+  for (uint i=0; i<points.size(); i++) {
+    A.block(3*i, 0, 3, 3) << -1 * rotations[i];
+    A.block(3*i, 3, 3, 3) << Eigen::Matrix3d::Identity();
+    b.block(3*i, 0, 3, 1) << points[i];
+  }
+
+  Eigen::VectorXd p = A.colPivHouseholderQr().solve(b);
+
+  std::cout << "The end-effector offset is (mm) " << std::endl << 1000 * p.head(3) << std::endl;
+
+  Eigen::MatrixXd errs(3, points.size());
+  for (uint i=0; i<points.size(); i++) {
+    errs.col(i) = p.tail(3) - rotations[i]*p.head(3) - points[i];
+  }
+  auto dists = errs.array().pow(2).colwise().sum().sqrt();
+  std::cout << "From each of the points registered, the residual error is (mm):" << 1000*dists << std::endl;
+  std::cout << "Max error (mm): " << 1000 * dists.maxCoeff() << std::endl;
+  std::cout << "Avg error (mm): " << 1000 * dists.mean() << std::endl;
+  return p.head(3);
+}
+
 
 void myLog(const char identifier[8], std::string msg) {
   std::cout << "log:"<< identifier << ":" << msg << "\n";
@@ -140,25 +184,21 @@ PointMatchResult matchPointSets(Eigen::MatrixXd pointsA, Eigen::MatrixXd pointsB
     return result;
   }
   if (pointsA.cols() != pointsB.cols()) {
-    std::cerr << "poitnsA and pointsB must have the same number of columns";
+    std::cerr << "pointsA and pointsB must have the same number of columns";
     return result;
   }
+  Eigen::Vector3d comA = pointsA.rowwise().mean(),
+                  comB = pointsB.rowwise().mean();
 
-  Eigen::Vector3d comA = pointsA.rowwise().mean(), comB = pointsB.rowwise().mean();
-
-  // std::cout << comA << std::endl;
-  // std::cout << comB << std::endl;
-  Eigen::MatrixXd p_A = pointsA.colwise() - comA, p_B = pointsB.colwise() - comB;
-
-  // std::cout << p_A << std::endl;
-  // std::cout << p_B << std::endl;
-  Eigen::Matrix3d H = p_A * p_B.transpose();
-  // H.fill(0);
-  // for (int i = 0; i < NPoints; i++) {
-  //   H += p_A.col(i) * p_B.col(i).transpose();
-  // }
-  // std::cout << H << std::endl;
+  Eigen::MatrixXd p_A = pointsA.colwise() - comA, 
+                  p_B = pointsB.colwise() - comB;
   
+
+  Eigen::Matrix3d H; H << 0., 0., 0., 0., 0., 0., 0., 0., 0.;
+  for (uint i = 0; i < pointsA.cols(); i++) {
+    std::cout << i;
+    H = H + p_A.col(i) * p_B.col(i).transpose();
+  }
   const int SVDOptions = Eigen::ComputeFullU | Eigen::ComputeFullV;
   Eigen::JacobiSVD<Eigen::Matrix3d> svd(H, SVDOptions);
 
@@ -167,18 +207,15 @@ PointMatchResult matchPointSets(Eigen::MatrixXd pointsA, Eigen::MatrixXd pointsB
 
   Eigen::Matrix3d U = svd.matrixU();
   Eigen::Matrix3d V = svd.matrixV();
-  // std::cout << "Matrix U:" << std::endl << U << std::endl;
-  // std::cout << "Matrix V" << std::endl << V << std::endl;
+
+  // Flip direction of least significant vector, to turn into a rotation if a reflection is found.  
+  // Required when the points are all coplanar.
+  V.col(2) = V.col(2) * (V.determinant() * U.determinant()); 
 
   Eigen::Matrix3d X = V*U.transpose();
 
   result.rotation = X;
   result.translation = comB - X * comA;
-
-  // std::cout << "Rotation:" << std::endl;
-  // std::cout << R << std::endl;
-  // std::cout << "Translation:" << std::endl;
-  // std::cout << t << std::endl;
 
   if (abs(X.determinant() - 1) > 1e-6) {
     std::cerr << "Determinant of rotation matrix not equal to 1 (is " <<  X.determinant() << ")... Failed to solve.";
@@ -186,11 +223,30 @@ PointMatchResult matchPointSets(Eigen::MatrixXd pointsA, Eigen::MatrixXd pointsB
   }
 
   auto err = (result.rotation * pointsA).colwise() + result.translation - pointsB;
-  // std::cout << "error" << std::endl << err <<std::endl;
   auto dists = err.array().pow(2).colwise().sum().sqrt();
+
+  std::cout << dists << std::endl;
   result.avg_error = dists.mean();
   result.max_error = dists.maxCoeff();
-  // std::cout << dists << std::endl;
-  // std::cout<< "Average error, max error: " << result.avg_error << ", " << result.max_error << std::endl;
+  result.success = true;
   return result;
+}
+
+bool YesNoPrompt(std::string msg){
+  char type;
+  do
+  {
+      std::cout << msg << std::endl;
+      type = myGetChar();
+  }
+  while( !std::cin.fail() && type!='y' && type!='n' );
+  return type == 'y';
+}
+
+char myGetChar() {
+  char c = std::getchar();
+  if (c != '\n') {
+    std::cin.ignore();
+  }
+  return c;
 }
