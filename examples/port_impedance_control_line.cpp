@@ -46,13 +46,12 @@ int main(int argc, char** argv) {
   const double stiffness{2000.0};
   const double damping{20.0};
   Eigen::Array3d stiffness_vec(stiffness, 0.0, stiffness);
-  DiagonalSpringDamper<3,8> impedance{stiffness_vec,
-                                           Eigen::Array3d::Constant(damping)};
-  PiecewiseSpring<2, 1> insertion_buffer({-0.280, 0.0}, {0.0, 0.0}, 300., 300.);
+  DiagonalSpringDamper<3,8> impedance{stiffness_vec, Eigen::Array3d::Constant(damping)};
+  PiecewiseSpring<2> insertion_buffer({-0.280, 0.0}, {0.0, 0.0}, 300., 300.);
 
   // Constrain slider in Y direction between 0.1 and -0.1
   const Eigen::Vector3d Y(0.0, 1.0, 0.0);
-  PiecewiseSpring<2, 1> slot_buffer({-0.1, 0.1}, {0.0, 0.0}, stiffness, stiffness);
+  PiecewiseSpring<2> slot_buffer({-0.1, 0.1}, {0.0, 0.0}, stiffness, stiffness);
 
   try {
     // connect to robot
@@ -70,7 +69,7 @@ int main(int argc, char** argv) {
     //auto ee_coord = computeWorldCoord(initial_iargs, ee);
 
     // set collision behavior
-    const double max_f{50.0};
+    const double max_f{30.0};
     const double max_t{30.0};
     robot.setCollisionBehavior(
         {{max_t, max_t, max_t, max_t, max_t, max_t, max_t}}, {{max_t, max_t, max_t, max_t, max_t, max_t, max_t}},
@@ -87,7 +86,7 @@ int main(int argc, char** argv) {
       auto port_coord_ext = slider.computeCoord(iargs);
       port_coord_ext.z = port_coord_ext.z - rcm;
       // Check error not too large
-      if (port_coord_ext.z.norm() > 0.2) {
+      if (port_coord_ext.z.norm() > 0.15) {
         throw std::runtime_error("Aborting; too far away from starting pose!");
       }
 
@@ -99,9 +98,10 @@ int main(int argc, char** argv) {
       slider_extension.z(0) = slider.q;
       slider_extension.dz(0) = slider.qdot;
       
-      auto F = impedance.F(port_coord_ext); //+ Y*slot_buffer.F(port_coord_ext.z[1]) ;
-      auto tau = port_coord_ext.J * F;
-      slider.update(tau.tail(1)(0,0), duration.toSec()); // + insertion_buffer.F(slider_extension);
+      Eigen::Vector3d F = impedance.F(port_coord_ext) + Y*slot_buffer.F(port_coord_ext.z[1]);
+      Eigen::Matrix<double, 8, 1> tau = port_coord_ext.J.transpose() * F;
+      double tau_slider = tau.tail(1)(0);
+      slider.update(tau_slider, duration.toSec()); // + insertion_buffer.F(slider_extension);
 
       // Check force not too large
       if (F.norm() > 30) {
