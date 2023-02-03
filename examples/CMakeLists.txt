@@ -19,16 +19,21 @@ add_library(examples_common STATIC
 )
 
 target_link_libraries(examples_common PUBLIC Franka::Franka Eigen3::Eigen3)
-target_link_libraries(examples_common PUBLIC MyLib MyJson)
-target_link_libraries(examples_common PUBLIC JoyInputLib)
+
+set(MYEXAMPLES
+  combined_impedance_control
+  geometric_port_impedance_control
+  instrument_impedance_control
+  joint_identification
+  port_impedance_control
+  port_impedance_control_line
+  register_frame
+  sandbox
+  virtual_instrument
+)
 
 set(EXAMPLES
   cartesian_impedance_control
-  port_impedance_control
-  port_impedance_control_line
-  geometric_port_impedance_control
-  instrument_impedance_control
-  combined_impedance_control
   communication_test
   echo_robot_state
   force_control
@@ -39,13 +44,10 @@ set(EXAMPLES
   generate_joint_position_motion
   generate_joint_velocity_motion
   grasp_object
-  joint_identification
   joint_impedance_control
   joint_point_to_point_motion
   motion_with_control
   print_joint_poses
-  register_frame
-  sandbox
   vacuum_object
 )
 
@@ -54,10 +56,17 @@ foreach(example ${EXAMPLES})
   target_link_libraries(${example} Franka::Franka examples_common Eigen3::Eigen3)
 endforeach()
 
+foreach(example ${MYEXAMPLES})
+  add_executable(${example} ${example}.cpp)
+  target_link_libraries(${example} Franka::Franka examples_common Eigen3::Eigen3)
+  target_link_libraries(${example} MyLib MyJson JoyInputLib)
+endforeach()
+
 target_link_libraries(joint_impedance_control Threads::Threads)
 target_link_libraries(sandbox Threads::Threads)
 target_link_libraries(instrument_impedance_control Threads::Threads)
 target_link_libraries(motion_with_control Poco::Foundation)
+target_link_libraries(virtual_instrument VirtualInstrumentLib)
 
 include(GNUInstallDirs)
 install(TARGETS ${EXAMPLES}

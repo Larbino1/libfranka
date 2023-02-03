@@ -52,8 +52,6 @@ int main(int argc, char** argv) {
   std::cout << ir.z << " -> " << spring.F(ir) << std::endl;
   */
 
-  json points = open_points_json();
-
   /*
   // Geometric parameters
   const Eigen::Vector3d ee_offset({0.377, 0.0, 0.042});

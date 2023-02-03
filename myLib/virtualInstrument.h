@@ -33,14 +33,14 @@ namespace virtualInstrument {
         Eigen::Matrix3d R_dot;
         Eigen::Matrix<double, 6, 3> J_dot;
         Eigen::Matrix<double, 3, 3> M;
-        Eigen::Matrix<double, 3, 3> vp;
+        Eigen::Vector3d vp;
     };
 
     class virtualInstrument{
       public:
+        Eigen::Vector3d origin;
         double m; // total mass
         Eigen::Matrix3d I0; // inertia
-        // mass is lumped into m/2 mass at each end
         Eigen::Vector3d q;
         Eigen::Vector3d q_dot;
 
@@ -123,7 +123,7 @@ namespace virtualInstrument {
             Eigen::Matrix<double, 3, 3> Jw_dot = kr.R * ret.J_dot.bottomRows(3) +  ret.R_dot * kr.J.bottomRows(3); // TODO check this is right
             
             ret.M = 0.5 * (Jv.transpose()*Jv*m + Jw.transpose()*I0*Jw);
-            ret.vp = Jv.transpose()*Jv_dot*m + Jw.transpose()*I0*Jw_dot;
+            ret.vp = (Jv.transpose()*Jv_dot*m + Jw.transpose()*I0*Jw_dot) * q_dot;
         }
 
         void update(kinematicsResult kr, Eigen::Vector3d u, double dt) {
