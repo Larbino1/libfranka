@@ -130,6 +130,8 @@ ImpedanceCoordResult<3, 7> computeWorldCoord(ImpedanceCoordArgs iargs, WorldCoor
 Eigen::Vector3d register_point(franka::Robot& robot, Eigen::Vector3d offset);
 Eigen::Vector3d register_point_prompt(franka::Robot& robot, Eigen::Vector3d offset);
 
+Eigen::Vector3d register_ee_offset(franka::Robot& robot);
+
 class VirtualPrismaticJoint {
  private:
   franka::Frame frame;
@@ -215,3 +217,6 @@ struct PointMatchResult {
 PointMatchResult matchPointSets(Eigen::MatrixXd pointsA, Eigen::MatrixXd pointsB);
 
 bool YesNoPrompt(std::string msg);
+
+
+char myGetChar();

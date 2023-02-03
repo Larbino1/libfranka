@@ -20,6 +20,8 @@
 #include "myLib.h"
 #include "myJson.h"
 
+const Eigen::Vector3d ZERO(0.0, 0.0, 0.0);
+
 int main(int argc, char** argv) {
   // Check whether the required arguments were passed
   if (argc != 2) {
@@ -29,7 +31,8 @@ int main(int argc, char** argv) {
   const char *homedir;
   homedir = getenv("HOME");
   fs::path home(homedir);
-  fs::path registration_points_filepath = home / "data/femoralhead.json";
+  // fs::path registration_points_filepath = home / "data/femoralhead.json";
+  fs::path registration_points_filepath = home / "data/calibrationTriangle.json";
   fs::path trajectory_filepath = home / "data/trajectory.json";
   fs::path transform_cache = home / "data/register_frame_demo_transform_cache.json";
 
@@ -38,7 +41,9 @@ int main(int argc, char** argv) {
   std::cout << "Loaded trajectory with " << trajectory.cols() << " points, starting at:" << std::endl << trajectory.col(1) << std::endl;
 
   // Geometric parameters
-  const Eigen::Vector3d ee_offset({0.377, 0.0, 0.042});
+  std::cout << "USING POINTY TOOL OFFSET" << std::endl;
+  Eigen::Vector3d ee_offset({-0.0005, -0.00014, 0.0322});
+  // Eigen::Vector3d ee_offset({0.377, 0.0, 0.042});
   const auto frame = franka::Frame::kEndEffector;
 
   // Compliance parameters
@@ -55,6 +60,8 @@ int main(int argc, char** argv) {
     franka::Model model = robot.loadModel();
     franka::RobotState initial_state = robot.readOnce();
 
+    // ee_offset = register_ee_offset(robot);
+    
     Eigen::Affine3d mesh_transform;
     if (p_or_tf.got_transform) {
       mesh_transform = p_or_tf.transform;
@@ -71,7 +78,7 @@ int main(int argc, char** argv) {
         registered_points.col(i) << p_B;
       }
       std::cout << "registration points, from json:" << std::endl << registration.points << std::endl;
-      std::cout << "registered points, from robot:" << std::endl << registered_points << std::endl;
+      std::cout << "registered points, from robot:" << std::endl << registered_points << std::endl << std::endl;
       PointMatchResult pointMatchResult = matchPointSets(registration.points, registered_points);
       std::cout << "Success?:" << pointMatchResult.success << std::endl;
       std::cout << "Rotation:" << std::endl << pointMatchResult.rotation << std::endl;
@@ -155,8 +162,7 @@ int main(int argc, char** argv) {
     std::cout << "WARNING: Collision thresholds are set to high values. "
               << "Make sure you have the user stop at hand!" << std::endl
               << "Press Enter to continue..." << std::endl;
-    std::cin.ignore();
-    std::getchar();
+    myGetChar();
     robot.control(impedance_control_callback, true, 1000);
     
   } catch (const franka::Exception& ex) {
