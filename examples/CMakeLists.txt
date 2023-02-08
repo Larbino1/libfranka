@@ -25,6 +25,7 @@ set(MYEXAMPLES
   geometric_port_impedance_control
   instrument_impedance_control
   joint_identification
+  lettuce_shaker
   port_impedance_control
   port_impedance_control_line
   register_frame
