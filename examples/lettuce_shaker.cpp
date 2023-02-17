@@ -25,6 +25,14 @@ struct TrajectoryConfig{
   double duration;
 };
 
+void logLettuceMotion(ImpedanceCoordResult<3, 7> coord) {
+  double z = coord.z.norm();
+  double dz = coord.dz.norm();
+  std::string msg("");
+  msg += std::to_string(z) + ", " + std::to_string(dz);
+  myLog("ee_z_dz_", msg);
+}
+
 int main(int argc, char** argv) {
   // Check whether the required arguments were passed
   if (argc != 6) {
@@ -138,7 +146,7 @@ int main(int argc, char** argv) {
 
       logTorques(model, robot_state);
       logState(robot_state);
-      logPortError(ee_coord);
+      logLettuceMotion(ee_coord);
 
       if (time >= cfg.duration) {
         std::cout << std::endl << "Finished motion, shutting down example" << std::endl;
